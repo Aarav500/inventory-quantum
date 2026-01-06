@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Home</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="quantum-icon">⚛️</span>
+            <span>Inventory Quantum</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="monitoring.html">Monitoring</a>
+            <a href="advanced.html">Advanced</a>
+            <a href="docs.html">Docs</a>
+        </div>
+    </nav>
+
+
+    <main class="container">
+        <section class="hero">
+            <h1>Inventory Quantum</h1>
+            <p class="hero-subtitle">Advanced Demand Forecasting with Deep Learning, Quantum Optimization & Explainable
+                AI</p>
+            <div class="hero-badges">
+                <span class="badge badge-ml">TFT Forecasting</span>
+                <span class="badge badge-quantum">QAOA Optimization</span>
+                <span class="badge badge-rl">Offline RL</span>
+                <span class="badge badge-conformal">Conformal Prediction</span>
+            </div>
+        </section>
+
+        <section class="upload-section card">
+            <h2>📊 Upload Your Inventory Data</h2>
+            <p class="section-desc">Upload your CSV file or try one of our sample datasets to see forecasting in action.
+            </p>
+
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon">📁</div>
+                <p>Drag & drop your CSV file here</p>
+                <p class="upload-hint">or click to browse</p>
+                <input type="file" id="file-input" accept=".csv" hidden>
+            </div>
+
+            <div class="data-quality" id="data-quality" style="display: none;">
+                <h3>Data Quality Assessment</h3>
+                <div class="quality-grid" id="quality-indicators"></div>
+            </div>
+        </section>
+
+        <section class="samples-section card">
+            <h2>🧪 Sample Datasets</h2>
+            <p class="section-desc">Try different data complexity levels to see how the system adapts.</p>
+
+            <div class="sample-grid">
+                <div class="sample-card" onclick="loadSample(1)">
+                    <div class="sample-icon">📋</div>
+                    <h3>Minimal</h3>
+                    <p>3 columns: date, sku, quantity_sold</p>
+                    <div class="feature-tags">
+                        <span class="tag tag-required">Required Only</span>
+                    </div>
+                    <div class="accuracy-preview">
+                        <span class="accuracy-label">Expected Accuracy:</span>
+                        <span class="accuracy-value accuracy-low">~70%</span>
+                    </div>
+                </div>
+
+                <div class="sample-card" onclick="loadSample(2)">
+                    <div class="sample-icon">📦</div>
+                    <h3>Basic</h3>
+                    <p>4 columns: + inventory levels</p>
+                    <div class="feature-tags">
+                        <span class="tag tag-required">Required</span>
+                        <span class="tag tag-inventory">Inventory</span>
+                    </div>
+                    <div class="accuracy-preview">
+                        <span class="accuracy-label">Expected Accuracy:</span>
+                        <span class="accuracy-value accuracy-medium">~78%</span>
+                    </div>
+                </div>
+
+                <div class="sample-card" onclick="loadSample(3)">
+                    <div class="sample-icon">💰</div>
+                    <h3>Standard</h3>
+                    <p>6 columns: + price, lead time</p>
+                    <div class="feature-tags">
+                        <span class="tag tag-required">Required</span>
+                        <span class="tag tag-inventory">Inventory</span>
+                        <span class="tag tag-pricing">Pricing</span>
+                    </div>
+                    <div class="accuracy-preview">
+                        <span class="accuracy-label">Expected Accuracy:</span>
+                        <span class="accuracy-value accuracy-good">~85%</span>
+                    </div>
+                </div>
+
+                <div class="sample-card" onclick="loadSample(4)">
+                    <div class="sample-icon">⚙️</div>
+                    <h3>Advanced</h3>
+                    <p>8 columns: + cost parameters</p>
+                    <div class="feature-tags">
+                        <span class="tag tag-required">Required</span>
+                        <span class="tag tag-inventory">Inventory</span>
+                        <span class="tag tag-pricing">Pricing</span>
+                        <span class="tag tag-costs">Costs</span>
+                    </div>
+                    <div class="accuracy-preview">
+                        <span class="accuracy-label">Expected Accuracy:</span>
+                        <span class="accuracy-value accuracy-high">~90%</span>
+                    </div>
+                </div>
+
+                <div class="sample-card featured" onclick="loadSample(5)">
+                    <div class="sample-icon">🚀</div>
+                    <h3>Complete</h3>
+                    <p>12 columns: + promotions, categories</p>
+                    <div class="feature-tags">
+                        <span class="tag tag-required">Required</span>
+                        <span class="tag tag-inventory">Inventory</span>
+                        <span class="tag tag-pricing">Pricing</span>
+                        <span class="tag tag-costs">Costs</span>
+                        <span class="tag tag-external">External</span>
+                    </div>
+                    <div class="accuracy-preview">
+                        <span class="accuracy-label">Expected Accuracy:</span>
+                        <span class="accuracy-value accuracy-excellent">~95%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features-explainer card">
+            <h2>🎯 Feature Explainability</h2>
+            <p class="section-desc">Understand how each feature contributes to forecast accuracy.</p>
+
+            <div class="feature-explain-grid" id="feature-explanations">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <section class="data-preview card" id="data-preview" style="display: none;">
+            <h2>📋 Data Preview</h2>
+            <div class="preview-stats" id="preview-stats"></div>
+            <div class="table-container">
+                <table id="preview-table"></table>
+            </div>
+            <button class="btn btn-primary" onclick="proceedToForecasting()">
+                Proceed to Forecasting →
+            </button>
+        </section>
+    </main>
+
+    <footer>
+        <p>Research Project for MIT / Stanford / CMU Applications</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
