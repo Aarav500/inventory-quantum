@@ -45,7 +45,8 @@ app.include_router(simulator.router, prefix="/simulator", tags=["Simulator"])
 app.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
 
 # Mount static files
-static_path = Path(__file__).parent / "static"
+# Mount static files
+static_path = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_path), html=True), name="static")
 
 
