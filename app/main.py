@@ -55,6 +55,26 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": settings.api_version}
 
+@app.get("/debug/diagnose")
+async def diagnose_paths():
+    """Diagnose file system paths."""
+    import os
+    current_file = Path(__file__).resolve()
+    static_path_absolute = current_file.parent / "static"
+    cwd = os.getcwd()
+    ls_static = []
+    if static_path_absolute.exists():
+        ls_static = os.listdir(str(static_path_absolute))
+    
+    return {
+        "cwd": cwd,
+        "__file__": str(current_file),
+        "static_path_absolute": str(static_path_absolute),
+        "static_exists": static_path_absolute.exists(),
+        "static_files": ls_static,
+        "root_path_env": os.getenv("ROOT_PATH"),
+    }
+
 
 @app.get("/")
 async def root():
