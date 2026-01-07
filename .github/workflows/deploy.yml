@@ -131,12 +131,49 @@ jobs:
               \"rm -f /tmp/image.tar.gz\",
 
               \"echo '=== Starting container ===' \",
-              \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
+              \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e ROOT_PATH=/inventory-forecasting -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
               \"sleep 5\",
-              \"echo '=== Verifying deployment ===' \",
+              \"echo '=== Verifying container ===' \",
               \"sudo docker ps\",
-              \"echo '=== Debug: Checking file structure ==='\",
-              \"sudo docker exec inventory-quantum ls -R /app/app || echo 'ls failed'\",
+              \"curl -s http://localhost:8000/health || echo 'Health check pending'\",
+              
+              \"echo '=== Installing Nginx ===' \",
+              \"sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx\",
+              
+              \"echo '=== Creating Nginx Config ===' \",
+              \"cat > /tmp/nginx-inventory.conf << 'NGINXCONF'\",
+              \"server {\",
+              \"    listen 80 default_server;\",
+              \"    server_name aarav-shah.com www.aarav-shah.com;\",
+              \"    location /inventory-forecasting/ {\",
+              \"        proxy_pass http://127.0.0.1:8000/;\",
+              \"        proxy_http_version 1.1;\",
+              \"        proxy_set_header Host \\$host;\",
+              \"        proxy_set_header X-Real-IP \\$remote_addr;\",
+              \"        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;\",
+              \"        proxy_set_header X-Forwarded-Proto \\$scheme;\",
+              \"    }\",
+              \"    location /inventory-forecasting {\",
+              \"        return 301 /inventory-forecasting/;\",
+              \"    }\",
+              \"    location / {\",
+              \"        return 200 'Inventory Quantum - Visit /inventory-forecasting/';\",
+              \"        add_header Content-Type text/plain;\",
+              \"    }\",
+              \"}\",
+              \"NGINXCONF\",
+              \"sudo cp /tmp/nginx-inventory.conf /etc/nginx/sites-available/inventory-quantum\",
+              \"sudo ln -sf /etc/nginx/sites-available/inventory-quantum /etc/nginx/sites-enabled/\",
+              \"sudo rm -f /etc/nginx/sites-enabled/default\",
+              
+              \"echo '=== Testing Nginx Config ===' \",
+              \"sudo nginx -t\",
+              \"sudo systemctl reload nginx\",
+              
+              \"echo '=== SSL Setup ===' \",
+              \"sudo certbot --nginx -d aarav-shah.com -d www.aarav-shah.com --non-interactive --agree-tos -m admin@aarav-shah.com --redirect || echo 'SSL setup skipped - run manually if DNS not ready'\",
+              
+              \"echo '=== Final Verification ===' \",
               \"sudo docker logs inventory-quantum 2>&1 | head -n 20\",
               \"echo '=== Done ===' \"
             ]" \
@@ -191,6 +228,7 @@ jobs:
           echo "========================================"
           echo "🎉 DEPLOYMENT COMPLETE!"
           echo "========================================"
-          echo "📊 Dashboard: http://$PUBLIC_IP:8000/static/index.html"
-          echo "🔌 API: http://$PUBLIC_IP:8000"
+          echo "🌐 Domain: https://aarav-shah.com/inventory-forecasting/static/index.html"
+          echo "📊 Direct: http://$PUBLIC_IP:8000/static/index.html"
+          echo "🔌 API: https://aarav-shah.com/inventory-forecasting/"
           echo "========================================"
