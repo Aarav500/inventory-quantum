@@ -168,6 +168,8 @@ jobs:
               \"sleep 5\",
               \"echo '=== Verifying deployment ===' \",
               \"sudo docker ps\",
+              \"echo '=== Debug: Checking file structure ==='\",
+              \"sudo docker exec inventory-quantum ls -R /app/app || echo 'ls failed'\",
               \"sudo docker logs inventory-quantum 2>&1 | head -n 20\",
               \"echo '=== Done ===' \"
             ]" \

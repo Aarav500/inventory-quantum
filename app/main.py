@@ -46,8 +46,7 @@ app.include_router(integrations.router, prefix="/integrations", tags=["Integrati
 
 # Mount static files
 static_path = Path(__file__).parent / "static"
-if static_path.exists():
-    app.mount("/static", StaticFiles(directory=str(static_path), html=True), name="static")
+app.mount("/static", StaticFiles(directory=str(static_path), html=True), name="static")
 
 
 @app.get("/health")
