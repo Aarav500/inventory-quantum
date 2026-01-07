@@ -18,6 +18,12 @@ class IntegrationProvider(str, Enum):
     MAGENTO = "magento"
     NETSUITE = "netsuite"
     SQUARE = "square"
+    AMAZON = "amazon"
+    FLIPKART = "flipkart"
+    EBAY = "ebay"
+    WALMART = "walmart"
+    ETSY = "etsy"
+    SALESFORCE = "salesforce"
 
 
 class IntegrationStatus(str, Enum):
@@ -157,6 +163,77 @@ available_integrations = [
         ],
         requires_oauth=True,
         documentation_url="https://developer.squareup.com",
+        setup_complexity="easy"
+    ),
+    IntegrationInfo(
+        provider=IntegrationProvider.AMAZON,
+        name="Amazon Seller Central",
+        description="Sync FBA/FBM inventory, manage orders, and track sales across Amazon marketplaces.",
+        features=[
+            "FBA inventory sync",
+            "Order management",
+            "Multi-marketplace support",
+            "Settlement reports",
+            "Buy Box pricing"
+        ],
+        requires_oauth=True,
+        documentation_url="https://developer-docs.amazon.com/sp-api/",
+        setup_complexity="medium"
+    ),
+    IntegrationInfo(
+        provider=IntegrationProvider.FLIPKART,
+        name="Flipkart",
+        description="Connect with India's leading e-commerce marketplace for seamless order and inventory management.",
+        features=[
+            "Inventory updates",
+            "Order processing",
+            "Label generation",
+            "Smart fulfillment"
+        ],
+        requires_oauth=True,
+        documentation_url="https://seller.flipkart.com/api-docs/",
+        setup_complexity="medium"
+    ),
+    IntegrationInfo(
+        provider=IntegrationProvider.EBAY,
+        name="eBay",
+        description="Reach global customers by syncing your eBay listings and orders.",
+        features=[
+            "Listing management",
+            "Order sync",
+            "Inventory tracking",
+            "Global shipping"
+        ],
+        requires_oauth=True,
+        documentation_url="https://developer.ebay.com/develop/apis",
+        setup_complexity="easy"
+    ),
+    IntegrationInfo(
+        provider=IntegrationProvider.WALMART,
+        name="Walmart Marketplace",
+        description="Expand your reach with Walmart.com integration for inventory and order fulfillment.",
+        features=[
+            "Item setup",
+            "Inventory management",
+            "Price updates",
+            "Lag time management"
+        ],
+        requires_oauth=True,
+        documentation_url="https://developer.walmart.com",
+        setup_complexity="medium"
+    ),
+    IntegrationInfo(
+        provider=IntegrationProvider.ETSY,
+        name="Etsy",
+        description="Sync your handmade and vintage goods inventory with Etsy.",
+        features=[
+            "Listing sync",
+            "Order management",
+            "Tax calculation",
+            "Shipping labels"
+        ],
+        requires_oauth=True,
+        documentation_url="https://developers.etsy.com/documentation/",
         setup_complexity="easy"
     ),
 ]

@@ -496,6 +496,53 @@
                         <input type="password" id="woo-consumer-secret" placeholder="WooCommerce Consumer Secret">
                     </div>
                 </div>
+                <div id="amazon-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Seller ID *</label>
+                        <input type="text" id="amazon-seller-id" placeholder="Your Seller ID">
+                    </div>
+                    <div class="form-group">
+                        <label>MWS Auth Token *</label>
+                        <input type="password" id="amazon-auth-token" placeholder="MWS/SP-API Auth Token">
+                    </div>
+                    <div class="form-group">
+                        <label>Marketplace Region *</label>
+                        <select id="amazon-region"
+                            style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.2); color: #fff;">
+                            <option value="us">North America (US/CA/MX)</option>
+                            <option value="eu">Europe (UK/DE/FR/IT/ES)</option>
+                            <option value="fe">Far East (JP/AU/SG)</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="flipkart-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>App Id *</label>
+                        <input type="text" id="flipkart-app-id" placeholder="Flipkart Application ID">
+                    </div>
+                    <div class="form-group">
+                        <label>App Secret *</label>
+                        <input type="password" id="flipkart-app-secret" placeholder="Flipkart Application Secret">
+                    </div>
+                </div>
+                <div id="ebay-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Client ID *</label>
+                        <input type="text" id="ebay-client-id" placeholder="eBay Developer Client ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret *</label>
+                        <input type="password" id="ebay-client-secret" placeholder="eBay Developer Client Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Environment</label>
+                        <select id="ebay-env"
+                            style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.2); color: #fff;">
+                            <option value="sandbox">Sandbox (Testing)</option>
+                            <option value="production">Production</option>
+                        </select>
+                    </div>
+                </div>
                 <div id="generic-fields" class="provider-fields" style="display: none;">
                     <div class="form-group">
                         <label>API Key *</label>
@@ -530,7 +577,13 @@
             woocommerce: '🛒',
             square: '⬛',
             magento: '🧡',
-            netsuite: '☁️'
+            netsuite: '☁️',
+            amazon: '📦',
+            flipkart: '🛍️',
+            ebay: '🔨',
+            walmart: '🏬',
+            etsy: '🧶',
+            salesforce: '☁️'
         };
 
         async function loadIntegrations() {
@@ -710,6 +763,33 @@
                     consumer_secret: document.getElementById('woo-consumer-secret').value
                 };
                 if (!credentials.store_url || !credentials.consumer_key || !credentials.consumer_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'amazon') {
+                credentials = {
+                    api_key: document.getElementById('amazon-seller-id').value,
+                    access_token: document.getElementById('amazon-auth-token').value
+                };
+                if (!credentials.api_key || !credentials.access_token) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'flipkart') {
+                credentials = {
+                    client_id: document.getElementById('flipkart-app-id').value,
+                    client_secret: document.getElementById('flipkart-app-secret').value
+                };
+                if (!credentials.client_id || !credentials.client_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'ebay') {
+                credentials = {
+                    client_id: document.getElementById('ebay-client-id').value,
+                    client_secret: document.getElementById('ebay-client-secret').value
+                };
+                if (!credentials.client_id || !credentials.client_secret) {
                     showNotification('Please fill in all required fields', 'error');
                     return;
                 }
