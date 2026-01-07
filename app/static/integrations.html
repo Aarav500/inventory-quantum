@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Integrations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .integrations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .connected-count {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .integrations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .integration-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .integration-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .integration-card.connected {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .integration-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .integration-logo.shopify {
+            background: rgba(150, 191, 72, 0.2);
+        }
+
+        .integration-logo.quickbooks {
+            background: rgba(44, 160, 28, 0.2);
+        }
+
+        .integration-logo.sap {
+            background: rgba(0, 143, 211, 0.2);
+        }
+
+        .integration-logo.woocommerce {
+            background: rgba(150, 88, 138, 0.2);
+        }
+
+        .integration-logo.square {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .integration-info h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.connected {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-badge.disconnected {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .integration-description {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .features-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-tag {
+            background: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .complexity-badge {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .complexity-badge.easy {
+            color: #10b981;
+        }
+
+        .complexity-badge.medium {
+            color: #f59e0b;
+        }
+
+        .complexity-badge.advanced {
+            color: #ef4444;
+        }
+
+        .sync-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .sync-stat {
+            text-align: center;
+        }
+
+        .sync-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .sync-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn.connect {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        .action-btn.connect:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .action-btn.sync {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .action-btn.sync:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+
+        .action-btn.disconnect {
+            background: rgba(239, 68, 68, 0.1);
+            color: #94a3b8;
+        }
+
+        .action-btn.disconnect:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .action-btn.docs {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+        }
+
+        .action-btn.docs:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            color: #fff;
+        }
+
+        .sync-history {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .history-table th {
+            color: #94a3b8;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .sync-status {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .sync-status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .sync-status.partial {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .sync-status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+        }
+
+        .oauth-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="quantum-icon">⚛️</span>
+            <span>Inventory Quantum</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="monitoring.html">Monitoring</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="abc.html">ABC</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html" class="active">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 2rem 0;">
+            <div class="integrations-header">
+                <div>
+                    <h1>🔗 Integrations</h1>
+                    <p class="hero-subtitle">Connect your inventory system to external platforms</p>
+                </div>
+                <div class="connected-count" id="connected-count">0 Connected</div>
+            </div>
+        </section>
+
+        <!-- Connected Integrations -->
+        <h2 class="section-title">✅ Connected</h2>
+        <div class="integrations-grid" id="connected-grid">
+            <div class="loading">Loading integrations...</div>
+        </div>
+
+        <!-- Available Integrations -->
+        <h2 class="section-title">🛍️ Available Integrations</h2>
+        <div class="integrations-grid" id="available-grid">
+            <div class="loading">Loading...</div>
+        </div>
+
+        <!-- Sync History -->
+        <div class="sync-history">
+            <h2 class="section-title">📜 Sync History</h2>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Status</th>
+                        <th>Items Synced</th>
+                        <th>Errors</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                    <tr>
+                        <td colspan="5">Loading history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Connect Modal -->
+    <div class="modal" id="connect-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Connect Integration</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 1.5rem;">
+                    Connect your account to sync inventory data automatically.
+                </p>
+                <div class="form-group">
+                    <label>Store URL (optional)</label>
+                    <input type="text" id="store-url" placeholder="yourstore.myshopify.com">
+                </div>
+                <p style="color: #f59e0b; font-size: 0.85rem; margin-top: 1rem;">
+                    ⚠️ Demo Mode: No actual connection will be made. This demonstrates the integration flow.
+                </p>
+                <button class="oauth-btn" onclick="connectProvider()">Connect via OAuth</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        const API_BASE = '';
+        let currentProvider = null;
+
+        const providerEmojis = {
+            shopify: '🛍️',
+            quickbooks: '📊',
+            sap: '🏢',
+            woocommerce: '🛒',
+            square: '⬛',
+            magento: '🧡',
+            netsuite: '☁️'
+        };
+
+        async function loadIntegrations() {
+            try {
+                // Load connected
+                const connectedRes = await fetch(`${API_BASE}/integrations`);
+                const connected = await connectedRes.json();
+
+                // Load available
+                const availableRes = await fetch(`${API_BASE}/integrations/available`);
+                const available = await availableRes.json();
+
+                // Update count
+                document.getElementById('connected-count').textContent = `${connected.length} Connected`;
+
+                // Render connected
+                const connectedGrid = document.getElementById('connected-grid');
+                if (connected.length === 0) {
+                    connectedGrid.innerHTML = '<p style="color: #94a3b8;">No integrations connected yet. Choose one from below!</p>';
+                } else {
+                    connectedGrid.innerHTML = connected.map(int => `
+                        <div class="integration-card connected">
+                            <div class="card-header">
+                                <div class="integration-logo ${int.provider}">
+                                    ${providerEmojis[int.provider] || '🔗'}
+                                </div>
+                                <div class="integration-info">
+                                    <h3>${int.name}</h3>
+                                    <span class="status-badge connected">Connected</span>
+                                </div>
+                            </div>
+                            
+                            <div class="sync-stats">
+                                <div class="sync-stat">
+                                    <div class="sync-value">${int.items_synced.toLocaleString()}</div>
+                                    <div class="sync-label">Items Synced</div>
+                                </div>
+                                <div class="sync-stat">
+                                    <div class="sync-value">${int.last_sync ? 'Just now' : 'Never'}</div>
+                                    <div class="sync-label">Last Sync</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-actions">
+                                <button class="action-btn sync" onclick="syncProvider('${int.provider}')">🔄 Sync Now</button>
+                                <button class="action-btn disconnect" onclick="disconnectProvider('${int.provider}')">Disconnect</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Filter out connected from available
+                const connectedProviders = connected.map(c => c.provider);
+                const availableFiltered = available.filter(a => !connectedProviders.includes(a.provider));
+
+                // Render available
+                const availableGrid = document.getElementById('available-grid');
+                availableGrid.innerHTML = availableFiltered.map(int => `
+                    <div class="integration-card">
+                        <div class="card-header">
+                            <div class="integration-logo ${int.provider}">
+                                ${providerEmojis[int.provider] || '🔗'}
+                            </div>
+                            <div class="integration-info">
+                                <h3>${int.name}</h3>
+                                <span class="complexity-badge ${int.setup_complexity}">
+                                    ${int.setup_complexity.charAt(0).toUpperCase() + int.setup_complexity.slice(1)} setup
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <p class="integration-description">${int.description}</p>
+                        
+                        <div class="features-list">
+                            ${int.features.slice(0, 4).map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                        </div>
+                        
+                        <div class="card-actions">
+                            <button class="action-btn connect" onclick="openConnectModal('${int.provider}', '${int.name}')">Connect</button>
+                            <button class="action-btn docs" onclick="window.open('${int.documentation_url}', '_blank')">Docs</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error('Error loading integrations:', e);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch(`${API_BASE}/integrations/sync-history`);
+                const history = await res.json();
+
+                const tbody = document.getElementById('history-tbody');
+                tbody.innerHTML = history.map(h => `
+                    <tr>
+                        <td style="text-transform: capitalize;">${h.provider}</td>
+                        <td><span class="sync-status ${h.status}">${h.status}</span></td>
+                        <td>${h.items_synced}</td>
+                        <td>${h.errors}</td>
+                        <td style="color: #94a3b8;">Just now</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Error loading history:', e);
+            }
+        }
+
+        function openConnectModal(provider, name) {
+            currentProvider = provider;
+            document.getElementById('modal-title').textContent = `Connect ${name}`;
+            document.getElementById('connect-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('connect-modal').classList.remove('active');
+            currentProvider = null;
+        }
+
+        async function connectProvider() {
+            if (!currentProvider) return;
+
+            const storeUrl = document.getElementById('store-url').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/integrations/${currentProvider}/connect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ store_url: storeUrl })
+                });
+
+                if (res.ok) {
+                    closeModal();
+                    loadIntegrations();
+                    alert('Integration connected successfully! (Demo mode)');
+                }
+            } catch (e) {
+                console.error('Error connecting:', e);
+            }
+        }
+
+        async function syncProvider(provider) {
+            try {
+                const res = await fetch(`${API_BASE}/integrations/${provider}/sync`, { method: 'POST' });
+                const result = await res.json();
+                alert(`Synced ${result.items_synced} items in ${result.duration_seconds.toFixed(1)}s`);
+                loadIntegrations();
+                loadHistory();
+            } catch (e) {
+                console.error('Error syncing:', e);
+            }
+        }
+
+        async function disconnectProvider(provider) {
+            if (!confirm('Are you sure you want to disconnect this integration?')) return;
+
+            try {
+                await fetch(`${API_BASE}/integrations/${provider}/disconnect`, { method: 'DELETE' });
+                loadIntegrations();
+            } catch (e) {
+                console.error('Error disconnecting:', e);
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('connect-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Initialize
+        loadIntegrations();
+        loadHistory();
+    </script>
+</body>
+
+</html>

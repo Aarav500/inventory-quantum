@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Locations</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .locations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .map-container {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            height: 400px;
+            position: relative;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+            color: #94a3b8;
+        }
+
+        .map-placeholder svg {
+            width: 80px;
+            height: 80px;
+            opacity: 0.5;
+        }
+
+        .locations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .location-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .location-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .location-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .location-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .location-icon.warehouse {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .location-icon.distribution_center {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .location-icon.store {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        .location-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .location-address {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .type-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .type-badge.warehouse {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+        }
+
+        .type-badge.distribution_center {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .type-badge.store {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .utilization-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .utilization-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .utilization-fill.low {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .utilization-fill.medium {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+
+        .utilization-fill.high {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        .location-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .loc-stat {
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .loc-stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .loc-stat-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .location-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .loc-btn {
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .loc-btn.view {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+        }
+
+        .loc-btn.transfer {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .loc-btn.optimize {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .transfer-section {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .transfer-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .form-group label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+        }
+
+        .optimization-results {
+            margin-top: 2rem;
+        }
+
+        .opt-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .opt-table th,
+        .opt-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .opt-table th {
+            color: #94a3b8;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .action-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .action-badge.increase {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .action-badge.decrease {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .action-badge.maintain {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="quantum-icon">⚛️</span>
+            <span>Inventory Quantum</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html" class="active">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 2rem 0;">
+            <div class="locations-header">
+                <div>
+                    <h1>📍 Multi-Location Management</h1>
+                    <p class="hero-subtitle">Manage inventory across warehouses, distribution centers, and stores</p>
+                </div>
+                <button class="add-btn" onclick="showAddModal()">
+                    <span>+</span> Add Location
+                </button>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="total-locations">--</div>
+                <div class="stat-label">Total Locations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="warehouses">--</div>
+                <div class="stat-label">Warehouses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="dcs">--</div>
+                <div class="stat-label">Distribution Centers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="stores">--</div>
+                <div class="stat-label">Stores</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-util">--%</div>
+                <div class="stat-label">Avg Utilization</div>
+            </div>
+        </div>
+
+        <!-- Map Placeholder -->
+        <div class="map-container">
+            <div class="map-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <div>Interactive map view</div>
+                <div style="font-size: 0.85rem;">Location markers would appear here with a mapping service integration
+                </div>
+            </div>
+        </div>
+
+        <!-- Locations Grid -->
+        <h3 style="margin-bottom: 1rem;">🏢 All Locations</h3>
+        <div class="locations-grid" id="locations-grid">
+            <div class="loading">Loading locations...</div>
+        </div>
+
+        <!-- Transfer Section -->
+        <div class="transfer-section">
+            <h3 style="margin-bottom: 1rem;">🔄 Stock Transfer</h3>
+            <p style="color: #94a3b8; margin-bottom: 1rem;">Move inventory between locations</p>
+
+            <div class="transfer-form">
+                <div class="form-group">
+                    <label>From Location</label>
+                    <select id="from-location">
+                        <option value="">Select...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>To Location</label>
+                    <select id="to-location">
+                        <option value="">Select...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>SKU</label>
+                    <input type="text" id="transfer-sku" placeholder="SKU-0001">
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="transfer-qty" value="100" min="1">
+                </div>
+                <button class="add-btn" onclick="createTransfer()">Transfer</button>
+            </div>
+        </div>
+
+        <!-- Optimization Results -->
+        <div class="optimization-results" style="display: none;" id="optimization-section">
+            <div class="transfer-section">
+                <h3 style="margin-bottom: 1rem;">⚡ Stock Distribution Optimization</h3>
+                <table class="opt-table">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>SKU</th>
+                            <th>Current Stock</th>
+                            <th>Optimal Stock</th>
+                            <th>Action</th>
+                            <th>Change</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="optimization-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        const API_BASE = '';
+        let locations = [];
+
+        const typeEmojis = {
+            warehouse: '🏭',
+            distribution_center: '📦',
+            store: '🏪'
+        };
+
+        async function loadLocations() {
+            try {
+                const res = await fetch(`${API_BASE}/locations/map-data`);
+                const data = await res.json();
+
+                // Update stats
+                document.getElementById('total-locations').textContent = data.summary.total_locations;
+                document.getElementById('warehouses').textContent = data.summary.warehouses;
+                document.getElementById('dcs').textContent = data.summary.distribution_centers;
+                document.getElementById('stores').textContent = data.summary.stores;
+                document.getElementById('avg-util').textContent = data.summary.avg_utilization + '%';
+
+                locations = data.locations;
+                renderLocations();
+                populateDropdowns();
+            } catch (e) {
+                console.error('Error loading locations:', e);
+            }
+        }
+
+        function renderLocations() {
+            const grid = document.getElementById('locations-grid');
+
+            grid.innerHTML = locations.map(loc => {
+                const utilClass = loc.utilization > 85 ? 'high' : loc.utilization > 60 ? 'medium' : 'low';
+
+                return `
+                    <div class="location-card">
+                        <div class="location-header">
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div class="location-icon ${loc.type}">
+                                    ${typeEmojis[loc.type] || '📍'}
+                                </div>
+                                <div>
+                                    <h4 class="location-name">${loc.name}</h4>
+                                    <p class="location-address">${loc.city}, ${loc.state}</p>
+                                </div>
+                            </div>
+                            <span class="type-badge ${loc.type}">${loc.type.replace('_', ' ')}</span>
+                        </div>
+                        
+                        <div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+                                <span style="color: #94a3b8;">Capacity Utilization</span>
+                                <span style="font-weight: 600;">${loc.utilization}%</span>
+                            </div>
+                            <div class="utilization-bar">
+                                <div class="utilization-fill ${utilClass}" style="width: ${loc.utilization}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="location-stats">
+                            <div class="loc-stat">
+                                <div class="loc-stat-value">${loc.capacity.toLocaleString()}</div>
+                                <div class="loc-stat-label">Capacity</div>
+                            </div>
+                            <div class="loc-stat">
+                                <div class="loc-stat-value">${Math.round(loc.capacity * loc.utilization / 100).toLocaleString()}</div>
+                                <div class="loc-stat-label">Current Stock</div>
+                            </div>
+                        </div>
+                        
+                        <div class="location-actions">
+                            <button class="loc-btn view" onclick="viewInventory('${loc.id}')">View Inventory</button>
+                            <button class="loc-btn optimize" onclick="optimizeLocation('${loc.id}')">Optimize</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function populateDropdowns() {
+            const options = locations.map(l =>
+                `<option value="${l.id}">${l.name}</option>`
+            ).join('');
+
+            document.getElementById('from-location').innerHTML = '<option value="">Select...</option>' + options;
+            document.getElementById('to-location').innerHTML = '<option value="">Select...</option>' + options;
+        }
+
+        async function viewInventory(locationId) {
+            try {
+                const res = await fetch(`${API_BASE}/locations/${locationId}/inventory`);
+                const inventory = await res.json();
+                alert(`Found ${inventory.length} items at this location.\nTop item: ${inventory[0]?.sku} (${inventory[0]?.quantity} units)`);
+            } catch (e) {
+                console.error('Error loading inventory:', e);
+            }
+        }
+
+        async function optimizeLocation(locationId) {
+            try {
+                const res = await fetch(`${API_BASE}/locations/optimize`);
+                const results = await res.json();
+
+                const tbody = document.getElementById('optimization-tbody');
+                tbody.innerHTML = results.map(r => `
+                    <tr>
+                        <td>${r.location_name}</td>
+                        <td><strong>${r.sku}</strong></td>
+                        <td>${r.current_stock}</td>
+                        <td>${r.optimal_stock}</td>
+                        <td><span class="action-badge ${r.action}">${r.action}</span></td>
+                        <td>${r.action === 'maintain' ? '-' : (r.action === 'increase' ? '+' : '-') + r.quantity_change}</td>
+                        <td style="color: #94a3b8; font-size: 0.85rem;">${r.reason}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('optimization-section').style.display = 'block';
+                document.getElementById('optimization-section').scrollIntoView({ behavior: 'smooth' });
+            } catch (e) {
+                console.error('Error optimizing:', e);
+            }
+        }
+
+        async function createTransfer() {
+            const from = document.getElementById('from-location').value;
+            const to = document.getElementById('to-location').value;
+            const sku = document.getElementById('transfer-sku').value;
+            const qty = parseInt(document.getElementById('transfer-qty').value);
+
+            if (!from || !to || !sku || !qty) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            if (from === to) {
+                alert('Source and destination must be different');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/locations/transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        from_location_id: from,
+                        to_location_id: to,
+                        sku: sku,
+                        quantity: qty
+                    })
+                });
+
+                const result = await res.json();
+                alert(`Transfer created!\nID: ${result.transfer_id}\nStatus: ${result.status}\n${qty} units of ${sku} from ${result.from_location} to ${result.to_location}`);
+            } catch (e) {
+                console.error('Error creating transfer:', e);
+            }
+        }
+
+        function showAddModal() {
+            alert('Add Location modal would open here.\nIn production, this would allow adding new warehouses, stores, or distribution centers.');
+        }
+
+        // Initialize
+        loadLocations();
+    </script>
+</body>
+
+</html>

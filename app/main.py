@@ -7,6 +7,7 @@ from pathlib import Path
 
 from app.config import get_settings
 from app.routers import upload, forecast, decision, monitoring
+from app.routers import analytics, alerts, abc, locations, reports, reorder, simulator, integrations
 
 settings = get_settings()
 
@@ -30,6 +31,16 @@ app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(forecast.router, prefix="/forecast", tags=["Forecasting"])
 app.include_router(decision.router, prefix="/decision", tags=["Decision"])
 app.include_router(monitoring.router, prefix="/monitoring", tags=["Monitoring"])
+
+# New feature routers
+app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+app.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
+app.include_router(abc.router, prefix="/abc", tags=["ABC Analysis"])
+app.include_router(locations.router, prefix="/locations", tags=["Locations"])
+app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+app.include_router(reorder.router, prefix="/reorder", tags=["Reorder"])
+app.include_router(simulator.router, prefix="/simulator", tags=["Simulator"])
+app.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
 
 # Mount static files
 static_path = Path(__file__).parent / "static"

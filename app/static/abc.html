@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - ABC Analysis</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .abc-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .category-card {
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid;
+        }
+
+        .category-card.cat-a {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .category-card.cat-b {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .category-card.cat-c {
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.15) 0%, rgba(148, 163, 184, 0.05) 100%);
+            border-color: rgba(148, 163, 184, 0.3);
+        }
+
+        .category-letter {
+            font-size: 3rem;
+            font-weight: 800;
+        }
+
+        .cat-a .category-letter {
+            color: #10b981;
+        }
+
+        .cat-b .category-letter {
+            color: #f59e0b;
+        }
+
+        .cat-c .category-letter {
+            color: #94a3b8;
+        }
+
+        .category-stats {
+            margin-top: 1rem;
+        }
+
+        .category-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .category-stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .chart-section {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .rec-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .rec-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .rec-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .rec-badge.a {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .rec-badge.b {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .rec-badge.c {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .rec-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .rec-list li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        .rec-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #6366f1;
+        }
+
+        .policy-box {
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .policy-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .policy-value {
+            color: #fff;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .items-table th {
+            color: #94a3b8;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .items-table tr:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .cat-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .cat-badge.A {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .cat-badge.B {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .cat-badge.C {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .run-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="quantum-icon">⚛️</span>
+            <span>Inventory Quantum</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="monitoring.html">Monitoring</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="abc.html" class="active">ABC</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 2rem 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>📊 ABC Analysis</h1>
+                    <p class="hero-subtitle">Pareto-based inventory categorization using the 80/20 rule</p>
+                </div>
+                <button class="run-btn" onclick="runAnalysis()">
+                    <span>🔄</span> Run Analysis
+                </button>
+            </div>
+        </section>
+
+        <!-- Category Summary Cards -->
+        <div class="abc-summary" id="abc-summary">
+            <div class="category-card cat-a">
+                <div class="category-letter">A</div>
+                <div class="category-name">High Value</div>
+                <div class="category-stats">
+                    <div class="category-stat">
+                        <span class="stat-label">Items</span>
+                        <span class="stat-value" id="cat-a-items">--</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-label">% of Items</span>
+                        <span class="stat-value" id="cat-a-pct-items">--</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-label">% of Value</span>
+                        <span class="stat-value" id="cat-a-pct-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-card cat-b">
+                <div class="category-letter">B</div>
+                <div class="category-name">Medium Value</div>
+                <div class="category-stats">
+                    <div class="category-stat">
+                        <span class="stat-label">Items</span>
+                        <span class="stat-value" id="cat-b-items">--</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-label">% of Items</span>
+                        <span class="stat-value" id="cat-b-pct-items">--</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-label">% of Value</span>
+                        <span class="stat-value" id="cat-b-pct-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-card cat-c">
+                <div class="category-letter">C</div>
+                <div class="category-name">Low Value</div>
+                <div class="category-stats">
+                    <div class="category-stat">
+                        <span class="stat-label">Items</span>
+                        <span class="stat-value" id="cat-c-items">--</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-label">% of Items</span>
+                        <span class="stat-value" id="cat-c-pct-items">--</span>
+                    </div>
+                    <div class="category-stat">
+                        <span class="stat-label">% of Value</span>
+                        <span class="stat-value" id="cat-c-pct-value">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pareto Chart -->
+        <div class="chart-section">
+            <h3 style="margin-bottom: 1rem;">📈 Pareto Chart</h3>
+            <div id="pareto-chart" style="height: 400px;"></div>
+        </div>
+
+        <!-- Recommendations -->
+        <h3 style="margin-bottom: 1rem;">💡 Category Recommendations</h3>
+        <div class="recommendations-grid" id="recommendations">
+            <div class="loading">Loading recommendations...</div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="chart-section" style="margin-top: 2rem;">
+            <h3 style="margin-bottom: 1rem;">📋 Item Classification</h3>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <button class="time-btn active" onclick="filterItems('all')">All</button>
+                <button class="time-btn" onclick="filterItems('A')">Category A</button>
+                <button class="time-btn" onclick="filterItems('B')">Category B</button>
+                <button class="time-btn" onclick="filterItems('C')">Category C</button>
+            </div>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>SKU</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Annual Value</th>
+                        <th>Cumulative %</th>
+                    </tr>
+                </thead>
+                <tbody id="items-tbody">
+                    <tr>
+                        <td colspan="6">Loading items...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        const API_BASE = '';
+        let allItems = [];
+
+        async function runAnalysis() {
+            try {
+                const res = await fetch(`${API_BASE}/abc/analyze`, { method: 'POST' });
+                const data = await res.json();
+
+                // Update summary cards
+                document.getElementById('cat-a-items').textContent = data.category_a.count;
+                document.getElementById('cat-a-pct-items').textContent = data.category_a.percentage_of_items + '%';
+                document.getElementById('cat-a-pct-value').textContent = data.category_a.percentage_of_value + '%';
+
+                document.getElementById('cat-b-items').textContent = data.category_b.count;
+                document.getElementById('cat-b-pct-items').textContent = data.category_b.percentage_of_items + '%';
+                document.getElementById('cat-b-pct-value').textContent = data.category_b.percentage_of_value + '%';
+
+                document.getElementById('cat-c-items').textContent = data.category_c.count;
+                document.getElementById('cat-c-pct-items').textContent = data.category_c.percentage_of_items + '%';
+                document.getElementById('cat-c-pct-value').textContent = data.category_c.percentage_of_value + '%';
+
+                allItems = data.items;
+                renderItems(allItems);
+                renderParetoChart(data.items);
+            } catch (e) {
+                console.error('Error running analysis:', e);
+            }
+        }
+
+        function renderParetoChart(items) {
+            const top50 = items.slice(0, 50);
+
+            const trace1 = {
+                x: top50.map(i => i.sku),
+                y: top50.map(i => i.annual_value),
+                name: 'Annual Value',
+                type: 'bar',
+                marker: {
+                    color: top50.map(i =>
+                        i.category === 'A' ? '#10b981' :
+                            i.category === 'B' ? '#f59e0b' : '#94a3b8'
+                    )
+                }
+            };
+
+            const trace2 = {
+                x: top50.map(i => i.sku),
+                y: top50.map(i => i.cumulative_percentage),
+                name: 'Cumulative %',
+                type: 'scatter',
+                mode: 'lines+markers',
+                yaxis: 'y2',
+                line: { color: '#6366f1', width: 2 },
+                marker: { size: 4 }
+            };
+
+            const layout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#94a3b8' },
+                margin: { t: 20, r: 60, b: 80, l: 80 },
+                xaxis: {
+                    tickangle: -45,
+                    gridcolor: 'rgba(148, 163, 184, 0.1)'
+                },
+                yaxis: {
+                    title: 'Annual Value ($)',
+                    gridcolor: 'rgba(148, 163, 184, 0.1)'
+                },
+                yaxis2: {
+                    title: 'Cumulative %',
+                    overlaying: 'y',
+                    side: 'right',
+                    range: [0, 100],
+                    gridcolor: 'rgba(148, 163, 184, 0.1)'
+                },
+                shapes: [
+                    { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 80, y1: 80, yref: 'y2', line: { color: '#10b981', dash: 'dash', width: 1 } },
+                    { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 95, y1: 95, yref: 'y2', line: { color: '#f59e0b', dash: 'dash', width: 1 } }
+                ],
+                legend: { x: 0, y: 1.1, orientation: 'h' }
+            };
+
+            Plotly.newPlot('pareto-chart', [trace1, trace2], layout, { responsive: true });
+        }
+
+        function renderItems(items) {
+            const tbody = document.getElementById('items-tbody');
+            tbody.innerHTML = items.slice(0, 30).map(item => `
+                <tr>
+                    <td>${item.rank}</td>
+                    <td><strong>${item.sku}</strong></td>
+                    <td>${item.name}</td>
+                    <td><span class="cat-badge ${item.category}">${item.category}</span></td>
+                    <td>$${item.annual_value.toLocaleString()}</td>
+                    <td>${item.cumulative_percentage}%</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterItems(category) {
+            document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (category === 'all') {
+                renderItems(allItems);
+            } else {
+                renderItems(allItems.filter(i => i.category === category));
+            }
+        }
+
+        async function loadRecommendations() {
+            try {
+                const res = await fetch(`${API_BASE}/abc/recommendations`);
+                const data = await res.json();
+
+                const container = document.getElementById('recommendations');
+                container.innerHTML = data.map(rec => `
+                    <div class="rec-card">
+                        <div class="rec-header">
+                            <div class="rec-badge ${rec.category.toLowerCase()}">${rec.category}</div>
+                            <div>
+                                <div style="font-weight: 600;">${rec.item_count} Items</div>
+                                <div style="color: #94a3b8; font-size: 0.85rem;">${rec.value_percentage}% of value</div>
+                            </div>
+                        </div>
+                        <ul class="rec-list">
+                            ${rec.recommendations.slice(0, 4).map(r => `<li>${r}</li>`).join('')}
+                        </ul>
+                        <div class="policy-box">
+                            <div class="policy-label">Reorder Strategy</div>
+                            <div class="policy-value">${rec.reorder_strategy}</div>
+                        </div>
+                        <div class="policy-box" style="margin-top: 0.5rem;">
+                            <div class="policy-label">Review Frequency</div>
+                            <div class="policy-value">${rec.review_frequency}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Error loading recommendations:', e);
+            }
+        }
+
+        // Initialize
+        runAnalysis();
+        loadRecommendations();
+    </script>
+</body>
+
+</html>
