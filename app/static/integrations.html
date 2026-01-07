@@ -426,16 +426,91 @@
             </div>
             <div id="modal-body">
                 <p style="color: #94a3b8; margin-bottom: 1.5rem;">
-                    Connect your account to sync inventory data automatically.
+                    Enter your API credentials to connect and sync inventory data.
                 </p>
-                <div class="form-group">
-                    <label>Store URL (optional)</label>
-                    <input type="text" id="store-url" placeholder="yourstore.myshopify.com">
+                <div id="shopify-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Store URL *</label>
+                        <input type="text" id="shopify-store" placeholder="yourstore.myshopify.com">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key *</label>
+                        <input type="text" id="shopify-api-key" placeholder="Your Shopify API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>API Secret *</label>
+                        <input type="password" id="shopify-api-secret" placeholder="Your Shopify API Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Access Token *</label>
+                        <input type="password" id="shopify-access-token" placeholder="Admin API Access Token">
+                    </div>
                 </div>
-                <p style="color: #f59e0b; font-size: 0.85rem; margin-top: 1rem;">
-                    ⚠️ Demo Mode: No actual connection will be made. This demonstrates the integration flow.
+                <div id="quickbooks-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Company ID *</label>
+                        <input type="text" id="qb-company-id" placeholder="Your QuickBooks Company ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client ID *</label>
+                        <input type="text" id="qb-client-id" placeholder="OAuth Client ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret *</label>
+                        <input type="password" id="qb-client-secret" placeholder="OAuth Client Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Refresh Token *</label>
+                        <input type="password" id="qb-refresh-token" placeholder="OAuth Refresh Token">
+                    </div>
+                </div>
+                <div id="sap-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>SAP Host URL *</label>
+                        <input type="text" id="sap-host" placeholder="https://your-sap-instance.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Client ID *</label>
+                        <input type="text" id="sap-client-id" placeholder="SAP API Client ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret *</label>
+                        <input type="password" id="sap-client-secret" placeholder="SAP API Client Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Company Code</label>
+                        <input type="text" id="sap-company-code" placeholder="e.g., 1000">
+                    </div>
+                </div>
+                <div id="woocommerce-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Store URL *</label>
+                        <input type="text" id="woo-store" placeholder="https://yourstore.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Consumer Key *</label>
+                        <input type="text" id="woo-consumer-key" placeholder="WooCommerce Consumer Key">
+                    </div>
+                    <div class="form-group">
+                        <label>Consumer Secret *</label>
+                        <input type="password" id="woo-consumer-secret" placeholder="WooCommerce Consumer Secret">
+                    </div>
+                </div>
+                <div id="generic-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>API Key *</label>
+                        <input type="text" id="generic-api-key" placeholder="Your API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>API Secret</label>
+                        <input type="password" id="generic-api-secret" placeholder="Your API Secret (if required)">
+                    </div>
+                </div>
+                <p style="color: #64748b; font-size: 0.8rem; margin-top: 1rem;">
+                    🔒 Your credentials are encrypted and stored securely. <a href="/static/docs.html#security"
+                        style="color: #818cf8;">Learn more</a>
                 </p>
-                <button class="oauth-btn" onclick="connectProvider()">Connect via OAuth</button>
+                <button class="oauth-btn" onclick="connectProvider()">Connect Integration</button>
             </div>
         </div>
     </div>
@@ -568,6 +643,19 @@
         function openConnectModal(provider, name) {
             currentProvider = provider;
             document.getElementById('modal-title').textContent = `Connect ${name}`;
+
+            // Hide all provider fields first
+            document.querySelectorAll('.provider-fields').forEach(el => el.style.display = 'none');
+
+            // Show appropriate fields for the provider
+            const fieldId = provider + '-fields';
+            const fields = document.getElementById(fieldId);
+            if (fields) {
+                fields.style.display = 'block';
+            } else {
+                document.getElementById('generic-fields').style.display = 'block';
+            }
+
             document.getElementById('connect-modal').classList.add('active');
         }
 
@@ -579,35 +667,127 @@
         async function connectProvider() {
             if (!currentProvider) return;
 
-            const storeUrl = document.getElementById('store-url').value;
+            // Gather credentials based on provider
+            let credentials = {};
+
+            if (currentProvider === 'shopify') {
+                credentials = {
+                    store_url: document.getElementById('shopify-store').value,
+                    api_key: document.getElementById('shopify-api-key').value,
+                    api_secret: document.getElementById('shopify-api-secret').value,
+                    access_token: document.getElementById('shopify-access-token').value
+                };
+                if (!credentials.store_url || !credentials.api_key || !credentials.access_token) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'quickbooks') {
+                credentials = {
+                    company_id: document.getElementById('qb-company-id').value,
+                    client_id: document.getElementById('qb-client-id').value,
+                    client_secret: document.getElementById('qb-client-secret').value,
+                    refresh_token: document.getElementById('qb-refresh-token').value
+                };
+                if (!credentials.company_id || !credentials.client_id || !credentials.client_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'sap') {
+                credentials = {
+                    host_url: document.getElementById('sap-host').value,
+                    client_id: document.getElementById('sap-client-id').value,
+                    client_secret: document.getElementById('sap-client-secret').value,
+                    company_code: document.getElementById('sap-company-code').value
+                };
+                if (!credentials.host_url || !credentials.client_id || !credentials.client_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'woocommerce') {
+                credentials = {
+                    store_url: document.getElementById('woo-store').value,
+                    consumer_key: document.getElementById('woo-consumer-key').value,
+                    consumer_secret: document.getElementById('woo-consumer-secret').value
+                };
+                if (!credentials.store_url || !credentials.consumer_key || !credentials.consumer_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else {
+                credentials = {
+                    api_key: document.getElementById('generic-api-key').value,
+                    api_secret: document.getElementById('generic-api-secret').value
+                };
+                if (!credentials.api_key) {
+                    showNotification('Please enter an API key', 'error');
+                    return;
+                }
+            }
 
             try {
                 const res = await fetch(`${API_BASE}/integrations/${currentProvider}/connect`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ store_url: storeUrl })
+                    body: JSON.stringify(credentials)
                 });
 
                 if (res.ok) {
                     closeModal();
                     loadIntegrations();
-                    alert('Integration connected successfully! (Demo mode)');
+                    showNotification('Integration connected successfully!', 'success');
+                } else {
+                    const error = await res.json();
+                    showNotification(error.detail || 'Connection failed', 'error');
                 }
             } catch (e) {
                 console.error('Error connecting:', e);
+                showNotification('Connection failed. Check your credentials.', 'error');
             }
         }
 
         async function syncProvider(provider) {
+            showNotification('Syncing...', 'info');
             try {
                 const res = await fetch(`${API_BASE}/integrations/${provider}/sync`, { method: 'POST' });
                 const result = await res.json();
-                alert(`Synced ${result.items_synced} items in ${result.duration_seconds.toFixed(1)}s`);
+                showNotification(`Synced ${result.items_synced} items in ${result.duration_seconds.toFixed(1)}s`, 'success');
                 loadIntegrations();
                 loadHistory();
             } catch (e) {
                 console.error('Error syncing:', e);
+                showNotification('Sync failed. Check connection.', 'error');
             }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Remove existing notification
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                info: '#6366f1'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                background: ${colors[type]};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.remove(), 4000);
         }
 
         async function disconnectProvider(provider) {

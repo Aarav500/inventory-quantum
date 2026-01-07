@@ -59,6 +59,15 @@ class ConnectRequest(BaseModel):
     api_key: Optional[str] = None
     api_secret: Optional[str] = None
     store_url: Optional[str] = None
+    access_token: Optional[str] = None
+    company_id: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    refresh_token: Optional[str] = None
+    host_url: Optional[str] = None
+    company_code: Optional[str] = None
+    consumer_key: Optional[str] = None
+    consumer_secret: Optional[str] = None
     config: Dict = Field(default_factory=dict)
 
 
@@ -214,6 +223,21 @@ async def connect_integration(provider: IntegrationProvider, request: ConnectReq
     if not info:
         raise HTTPException(status_code=404, detail="Integration provider not supported")
     
+    # Create config dict but mask secrets
+    stored_config = request.dict(exclude_unset=True)
+    
+    # Mask secrets for storage/display
+    if "api_secret" in stored_config:
+        stored_config["api_secret"] = "********"
+    if "access_token" in stored_config:
+        stored_config["access_token"] = "********"
+    if "client_secret" in stored_config:
+        stored_config["client_secret"] = "********"
+    if "refresh_token" in stored_config:
+        stored_config["refresh_token"] = "********"
+    if "consumer_secret" in stored_config:
+        stored_config["consumer_secret"] = "********"
+
     integration = Integration(
         id=f"int-{uuid.uuid4().hex[:8]}",
         provider=provider,
@@ -223,10 +247,7 @@ async def connect_integration(provider: IntegrationProvider, request: ConnectReq
         last_sync=None,
         sync_frequency="hourly",
         items_synced=0,
-        config={
-            "store_url": request.store_url,
-            "demo_mode": True
-        }
+        config=stored_config
     )
     
     connected_integrations.append(integration)
