@@ -136,7 +136,7 @@ jobs:
               \"echo '=== Configuring Nginx ===' \",
               \"sudo tee /etc/nginx/sites-available/inventory-quantum <<'EOF'\",
               \"server {\",
-              \"    listen 80;\",
+              \"    listen 80 default_server;\",
               \"    server_name aarav-shah.com www.aarav-shah.com;\",
               \"\",
               \"    location /inventory-forecasting/ {\",
@@ -159,7 +159,9 @@ jobs:
               
               \"sudo ln -sf /etc/nginx/sites-available/inventory-quantum /etc/nginx/sites-enabled/\",
               \"sudo rm -f /etc/nginx/sites-enabled/default\",
-              \"sudo nginx -t && sudo systemctl restart nginx || echo 'Nginx restart failed'\",
+              \"echo '--- Testing Nginx Config ---'\",
+              \"if ! sudo nginx -t; then echo '❌ Nginx syntax check failed!'; exit 1; fi\",
+              \"sudo systemctl restart nginx\",
 
               \"echo '=== SSL Setup (Best Effort) ===' \",
               \"if [ ! -d /etc/letsencrypt/live/aarav-shah.com ]; then\",
