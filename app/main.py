@@ -2,6 +2,8 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.config import get_settings
 from app.routers import upload, forecast, decision, monitoring
@@ -29,6 +31,11 @@ app.include_router(forecast.router, prefix="/forecast", tags=["Forecasting"])
 app.include_router(decision.router, prefix="/decision", tags=["Decision"])
 app.include_router(monitoring.router, prefix="/monitoring", tags=["Monitoring"])
 
+# Mount static files
+static_path = Path(__file__).parent / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path), html=True), name="static")
+
 
 @app.get("/health")
 async def health_check():
@@ -44,4 +51,6 @@ async def root():
         "version": settings.api_version,
         "docs": "/docs",
         "health": "/health",
+        "dashboard": "/static/index.html",
     }
+
