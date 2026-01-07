@@ -76,6 +76,11 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Inventory Quantum" \
             --parameters "commands=[
+              \"set -e\",
+              \"echo '=== Environment Setup ===' \",
+              \"export AWS_REGION=${AWS_REGION_VAL}\",
+              \"echo 'Region: $AWS_REGION'\",
+              \"echo 'Bucket: ${S3_BUCKET}'\",
               \"echo '=== Checking Docker installation ===' \",
               \"if ! command -v docker &> /dev/null; then\",
               \"  echo 'Docker not found. Installing...';\",
@@ -96,14 +101,23 @@ jobs:
               \"sudo docker rm inventory-quantum 2>/dev/null || true\",
               \"sudo docker system prune -af\",
               \"echo '=== Downloading image from S3 ===' \",
-              \"aws s3 cp s3://${S3_BUCKET}/deployments/inventory-quantum-image.tar.gz /tmp/image.tar.gz --region ${AWS_REGION_VAL}\",
+              \"if aws s3 cp s3://${S3_BUCKET}/deployments/inventory-quantum-image.tar.gz /tmp/image.tar.gz --region ${AWS_REGION_VAL}; then\",
+              \"  echo 'Download successful'\",
+              \"  ls -lh /tmp/image.tar.gz\",
+              \"else\",
+              \"  echo '❌ S3 Download Failed! Check IAM Role permissions.'\",
+              \"  exit 1\",
+              \"fi\",
               \"echo '=== Loading image ===' \",
               \"gunzip -c /tmp/image.tar.gz | sudo docker load\",
+              \"sudo docker images\",
               \"rm -f /tmp/image.tar.gz\",
               \"echo '=== Starting container ===' \",
               \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
               \"sleep 5\",
+              \"echo '=== Verifying deployment ===' \",
               \"sudo docker ps\",
+              \"sudo docker logs inventory-quantum 2>&1 | head -n 20\",
               \"echo '=== Done ===' \"
             ]" \
             --timeout-seconds 600 \
