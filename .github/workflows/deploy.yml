@@ -38,33 +38,37 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Build and Push Docker Image
+      - name: Build Docker Image
         run: |
           echo "🐳 Building Docker image..."
-          
-          # Build with no cache to keep it small
           docker build --no-cache -t ${{ env.DOCKER_IMAGE }}:latest .
-          
-          echo "📦 Saving and uploading Docker image..."
-          docker save ${{ env.DOCKER_IMAGE }}:latest | gzip | aws s3 cp - s3://${{ secrets.S3_BUCKET_NAME }}/deployments/inventory-quantum-image.tar.gz
-          
+          echo "✅ Docker image built"
+
+      - name: Save and Upload Docker Image
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+        run: |
+          echo "📦 Saving and uploading Docker image to S3..."
+          echo "Bucket: $S3_BUCKET"
+          docker save ${{ env.DOCKER_IMAGE }}:latest | gzip > /tmp/docker-image.tar.gz
+          ls -lh /tmp/docker-image.tar.gz
+          aws s3 cp /tmp/docker-image.tar.gz s3://${S3_BUCKET}/deployments/inventory-quantum-image.tar.gz
+          rm /tmp/docker-image.tar.gz
           echo "✅ Image uploaded to S3"
-          
-          # Clean up local image
-          docker rmi ${{ env.DOCKER_IMAGE }}:latest || true
-          docker system prune -af
 
       - name: Deploy to EC2 via SSM
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+          AWS_REGION_VAL: ${{ secrets.AWS_REGION }}
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           echo "🚀 Deploying to EC2..."
           
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
-          S3_BUCKET="${{ secrets.S3_BUCKET_NAME }}"
-          REGION="${{ secrets.AWS_REGION }}"
-          AWS_KEY="${{ secrets.AWS_ACCESS_KEY_ID }}"
-          AWS_SECRET="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           
           echo "📍 Instance: $INSTANCE_ID"
+          echo "📍 Bucket: $S3_BUCKET"
           
           # Send SSM command
           COMMAND_ID=$(aws ssm send-command \
@@ -76,13 +80,13 @@ jobs:
               \"sudo docker stop inventory-quantum 2>/dev/null || true\",
               \"sudo docker rm inventory-quantum 2>/dev/null || true\",
               \"sudo docker system prune -af\",
-              \"echo '=== Downloading image ===' \",
-              \"aws s3 cp s3://$S3_BUCKET/deployments/inventory-quantum-image.tar.gz /tmp/image.tar.gz --region $REGION\",
+              \"echo '=== Downloading image from S3 ===' \",
+              \"aws s3 cp s3://${S3_BUCKET}/deployments/inventory-quantum-image.tar.gz /tmp/image.tar.gz --region ${AWS_REGION_VAL}\",
               \"echo '=== Loading image ===' \",
               \"gunzip -c /tmp/image.tar.gz | sudo docker load\",
               \"rm -f /tmp/image.tar.gz\",
               \"echo '=== Starting container ===' \",
-              \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e AWS_REGION=$REGION -e S3_BUCKET=$S3_BUCKET -e AWS_ACCESS_KEY_ID=$AWS_KEY -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET inventory-quantum:latest\",
+              \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
               \"sleep 5\",
               \"sudo docker ps\",
               \"echo '=== Done ===' \"
