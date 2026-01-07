@@ -131,7 +131,7 @@ jobs:
               \"rm -f /tmp/image.tar.gz\",
 
               \"echo '=== Starting container ===' \",
-              \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e ROOT_PATH=/inventory-forecasting -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
+              \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
               \"sleep 5\",
               \"echo '=== Verifying container ===' \",
               \"sudo docker ps\",
