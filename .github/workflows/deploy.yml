@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
   deploy:
@@ -21,23 +21,62 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Get EC2 Public IP
+        id: ec2
+        run: |
+          EC2_IP=$(aws ec2 describe-instances \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+          echo "ip=$EC2_IP" >> $GITHUB_OUTPUT
+          echo "EC2 IP: $EC2_IP"
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          ssh-keyscan -H ${{ steps.ec2.outputs.ip }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/inventory-quantum
-            git pull origin main
-            docker-compose down || true
-            docker-compose build --no-cache
-            docker-compose up -d
+        run: |
+          ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no ec2-user@${{ steps.ec2.outputs.ip }} << 'EOF'
+            # Install Docker if not present
+            if ! command -v docker &> /dev/null; then
+              sudo yum update -y
+              sudo yum install -y docker git
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker ec2-user
+            fi
+            
+            # Clone or update repo
+            if [ -d "inventory-quantum" ]; then
+              cd inventory-quantum
+              git pull origin main
+            else
+              git clone https://github.com/Aarav500/inventory-quantum.git
+              cd inventory-quantum
+            fi
+            
+            # Build and run with Docker
+            sudo docker stop inventory-quantum || true
+            sudo docker rm inventory-quantum || true
+            sudo docker build -t inventory-quantum .
+            sudo docker run -d --name inventory-quantum -p 8000:8000 \
+              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -e AWS_REGION=${{ secrets.AWS_REGION }} \
+              -e S3_BUCKET=${{ secrets.S3_BUCKET_NAME }} \
+              inventory-quantum
+            
             echo "Deployment complete!"
+          EOF
 
       - name: Health check
         run: |
           sleep 30
-          curl -f http://${{ secrets.EC2_HOST }}:8000/health || echo "Health check pending..."
+          curl -f http://${{ steps.ec2.outputs.ip }}:8000/health || echo "App starting..."
+          echo "Dashboard: http://${{ steps.ec2.outputs.ip }}:8000/static/index.html"
