@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+import os
 
 from app.config import get_settings
 from app.routers import upload, forecast, decision, monitoring
@@ -15,6 +16,7 @@ app = FastAPI(
     title=settings.api_title,
     version=settings.api_version,
     description="Inventory forecasting and quantum-inspired optimization platform",
+    root_path=os.getenv("ROOT_PATH", ""),
 )
 
 # CORS middleware
