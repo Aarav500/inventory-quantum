@@ -134,7 +134,7 @@ jobs:
               \"sudo apt-get update && sudo apt-get install -y nginx python3-certbot-nginx || echo 'Apt install failed'\",
               
               \"echo '=== Configuring Nginx ===' \",
-              \"sudo tee /etc/nginx/sites-available/inventory-quantum <<EOF\",
+              \"sudo tee /etc/nginx/sites-available/inventory-quantum <<'EOF'\",
               \"server {\",
               \"    listen 80;\",
               \"    server_name aarav-shah.com www.aarav-shah.com;\",
@@ -153,6 +153,9 @@ jobs:
               \"    }\",
               \"}\",
               \"EOF\",
+              
+              \"echo '--- Verifying Nginx Config Content ---'\",
+              \"cat /etc/nginx/sites-available/inventory-quantum\",
               
               \"sudo ln -sf /etc/nginx/sites-available/inventory-quantum /etc/nginx/sites-enabled/\",
               \"sudo rm -f /etc/nginx/sites-enabled/default\",
