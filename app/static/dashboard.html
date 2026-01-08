@@ -533,6 +533,161 @@
             .col-12 {
                 grid-column: span 12;
             }
+
+            .container {
+                padding: 1rem;
+            }
+
+            header {
+                padding: 1rem 0;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.85rem;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                gap: 0.75rem;
+                padding: 0.75rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .controls select,
+            .controls button,
+            .controls input {
+                width: 100%;
+            }
+
+            .metric-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+            }
+
+            .metric {
+                padding: 0.5rem;
+            }
+
+            .metric-value {
+                font-size: 1.25rem;
+            }
+
+            .chart-container {
+                height: 200px;
+            }
+
+            .chart-container.tall {
+                height: 250px;
+            }
+
+            .heatmap-container {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.75rem;
+            }
+
+            .logo {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .quantum-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            .subtitle {
+                font-size: 0.75rem;
+            }
+
+            .status-bar {
+                font-size: 0.8rem;
+            }
+
+            .card {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .card h2 {
+                font-size: 0.9rem;
+            }
+
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-value {
+                font-size: 1.5rem;
+            }
+
+            .metric-label {
+                font-size: 0.65rem;
+            }
+
+            .chart-container {
+                height: 180px;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            th,
+            td {
+                padding: 0.4rem;
+            }
+
+            .badge {
+                font-size: 0.55rem;
+                padding: 0.15rem 0.4rem;
+            }
+
+            .feature-importance {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .feature-name {
+                width: 100%;
+            }
+
+            .log-container {
+                max-height: 100px;
+                font-size: 0.7rem;
+            }
+
+            footer {
+                padding: 1rem;
+                font-size: 0.75rem;
+            }
+
+            select,
+            button,
+            input {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>

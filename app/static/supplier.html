@@ -90,13 +90,70 @@
         .trend-down {
             color: #ef4444;
         }
+
+        /* Mobile responsive for supplier cards */
+        @media (max-width: 768px) {
+            .supplier-card {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                padding: 1.25rem;
+            }
+
+            .supplier-card>div {
+                border-left: none !important;
+                padding-left: 0 !important;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .supplier-card>div:first-child {
+                border-top: none;
+                padding-top: 0;
+            }
+
+            .sup-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .score-huge {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .supplier-card {
+                padding: 1rem;
+            }
+
+            .sup-header h3 {
+                font-size: 1rem;
+            }
+
+            .score-huge {
+                font-size: 1.75rem;
+            }
+
+            .star-rating {
+                font-size: 1.2rem;
+            }
+
+            .metric-row {
+                font-size: 0.8rem;
+            }
+
+            .grade-badge {
+                font-size: 0.75rem;
+                padding: 2px 6px;
+            }
+        }
     </style>
 </head>
 
 <body>
-        <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
-        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')"
+            aria-label="Toggle navigation">☰</button>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="forecasting.html">Forecasting</a>

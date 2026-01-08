@@ -11,9 +11,10 @@
 </head>
 
 <body>
-        <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
-        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')"
+            aria-label="Toggle navigation">☰</button>
         <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="forecasting.html" class="active">Forecasting</a>
@@ -461,6 +462,108 @@
         .metric-card .metric-explain {
             font-size: 0.75rem;
             color: #8b8ba7;
+        }
+
+        /* Mobile responsive for forecasting */
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .page-header p {
+                font-size: 0.9rem;
+            }
+
+            .status-content {
+                flex-direction: column;
+                gap: 0.75rem;
+                text-align: center;
+            }
+
+            .controls-grid {
+                flex-direction: column;
+            }
+
+            .control-group {
+                width: 100%;
+            }
+
+            #forecast-chart {
+                height: 300px !important;
+            }
+
+            .explain-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .explain-card {
+                padding: 1rem;
+            }
+
+            #feature-importance-chart,
+            #attention-chart {
+                height: 200px !important;
+            }
+
+            .accuracy-item {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .acc-feature {
+                width: 100%;
+            }
+
+            .metric-row {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-header {
+                margin-bottom: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.25rem;
+            }
+
+            .data-status {
+                padding: 0.75rem 1rem;
+            }
+
+            #forecast-chart {
+                height: 250px !important;
+            }
+
+            .explain-card h3 {
+                font-size: 0.9rem;
+            }
+
+            .formula {
+                font-size: 1rem;
+            }
+
+            .metric-card {
+                padding: 1rem;
+            }
+
+            .metric-card .metric-value {
+                font-size: 1.5rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-outline {
+                width: 100%;
+            }
         }
     </style>
 </body>
