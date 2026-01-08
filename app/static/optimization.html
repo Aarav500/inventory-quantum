@@ -34,17 +34,30 @@
         <section class="card">
             <h2>🔧 Optimization Parameters</h2>
             <div class="controls-grid">
-                <div class="control-group"><label>Max Order Qty</label><input type="number" id="max-qty" value="200">
+                <div class="control-group">
+                    <label>Max Order Qty</label>
+                    <input type="number" id="max-qty" value="200">
                 </div>
-                <div class="control-group"><label>Service Level</label><input type="number" id="service-level"
-                        value="95" step="1" min="80" max="99">%</div>
-                <div class="control-group"><label>QAOA Layers (p)</label><select id="qaoa-layers">
+                <div class="control-group">
+                    <label>Service Level</label>
+                    <div class="input-with-suffix">
+                        <input type="number" id="service-level" value="95" step="1" min="80" max="99">
+                        <span class="input-suffix">%</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>QAOA Layers (p)</label>
+                    <select id="qaoa-layers">
                         <option>1</option>
                         <option>2</option>
                         <option selected>3</option>
                         <option>4</option>
-                    </select></div>
-                <button class="btn btn-primary" onclick="runOptimization()">Run Optimization</button>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="runOptimization()">Run Optimization</button>
+                </div>
             </div>
         </section>
 
