@@ -61,10 +61,26 @@ app.include_router(rebalancing.router, prefix="/rebalancing", tags=["Rebalancing
 app.include_router(scenario.router, prefix="/scenario", tags=["Scenario Simulator"])
 app.include_router(supplier.router, prefix="/supplier", tags=["Supplier Scorecard"])
 
-# Mount static files
+
+
 # Mount static files
 static_path = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_path), html=True), name="static")
+
+# Serve HTML pages at root
+from fastapi.responses import FileResponse
+
+@app.get("/")
+async def root():
+    return FileResponse(static_path / "index.html")
+
+@app.get("/{page}.html")
+async def serve_html(page: str):
+    """Serve specific HTML pages from static directory."""
+    file_path = static_path / f"{page}.html"
+    if file_path.exists():
+        return FileResponse(file_path)
+    return {"detail": "Not Found", "version": settings.api_version}, 404
 
 
 @app.get("/health")
