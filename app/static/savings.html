@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Cost Savings</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .savings-hero {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(124, 58, 237, 0.2));
+            border-radius: 16px;
+            margin-bottom: 2rem;
+        }
+
+        .savings-amount {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #10b981, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .savings-period {
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-change {
+            font-size: 0.9rem;
+        }
+
+        .positive {
+            color: #10b981;
+        }
+
+        .breakdown-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .breakdown-card {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .breakdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .breakdown-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .breakdown-savings {
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .comparison-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-label {
+            color: var(--text-secondary);
+        }
+
+        .comparison-before {
+            color: #ef4444;
+        }
+
+        .comparison-after {
+            color: #10b981;
+        }
+
+        .recommendations {
+            list-style: none;
+            padding: 0;
+        }
+
+        .recommendations li {
+            padding: 0.75rem 0;
+            padding-left: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .recommendations li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html" class="active">Savings</a>
+            <a href="chat.html">AI Chat</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="savings-hero">
+            <p class="savings-period">Potential Annual Savings</p>
+            <div class="savings-amount" id="totalSavings">$0</div>
+            <p style="color: var(--text-secondary);">Based on your current inventory patterns</p>
+        </div>
+
+        <div class="metric-grid" id="metrics"></div>
+
+        <div class="grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <section class="card">
+                <h2>📊 Savings Breakdown</h2>
+                <div id="breakdown"></div>
+            </section>
+
+            <section class="card">
+                <h2>📈 Before vs After</h2>
+                <div id="comparison"></div>
+            </section>
+        </div>
+
+        <section class="card" style="margin-top: 2rem;">
+            <h2>💡 Recommendations</h2>
+            <ul class="recommendations" id="recommendations"></ul>
+        </section>
+    </main>
+
+    <script>
+        async function loadSavings() {
+            try {
+                const [calcRes, compRes] = await Promise.all([
+                    fetch('/savings/calculate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    }),
+                    fetch('/savings/comparison')
+                ]);
+                const calcData = await calcRes.json();
+                const compData = await compRes.json();
+
+                renderSavings(calcData);
+                renderComparison(compData);
+            } catch (e) {
+                console.error('Error loading savings:', e);
+            }
+        }
+
+        function renderSavings(data) {
+            document.getElementById('totalSavings').textContent = `$${data.total_annual_savings.toLocaleString()}`;
+
+            document.getElementById('metrics').innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">Monthly Savings</div>
+                    <div class="metric-value">$${data.total_monthly_savings.toLocaleString()}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">ROI</div>
+                    <div class="metric-value positive">${data.roi_percent}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Payback Period</div>
+                    <div class="metric-value">${data.payback_months} mo</div>
+                </div>
+            `;
+
+            document.getElementById('breakdown').innerHTML = data.breakdown.map(b => `
+                <div class="breakdown-card">
+                    <div class="breakdown-header">
+                        <span class="breakdown-title">${b.category}</span>
+                        <span class="breakdown-savings">-${b.savings_percent}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${b.savings_percent}%"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                        <span>Before: $${b.before.toLocaleString()}</span>
+                        <span>Saves: <strong class="positive">$${b.savings.toLocaleString()}</strong></span>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('recommendations').innerHTML = data.recommendations.map(r =>
+                `<li>${r}</li>`
+            ).join('');
+        }
+
+        function renderComparison(data) {
+            document.getElementById('comparison').innerHTML = data.metrics.map(m => `
+                <div class="comparison-row">
+                    <span class="comparison-label">${m.name}</span>
+                    <span>
+                        <span class="comparison-before">${m.before}${m.unit}</span>
+                        →
+                        <span class="comparison-after">${m.after}${m.unit}</span>
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        loadSavings();
+    </script>
+</body>
+
+</html>

@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.routers import upload, forecast, decision, monitoring
 from app.routers import analytics, alerts, abc, locations, reports, reorder, simulator, integrations
 from app.routers import export, anomaly
+from app.routers import chat, stockout, savings
 
 settings = get_settings()
 
@@ -48,6 +49,11 @@ app.include_router(integrations.router, prefix="/integrations", tags=["Integrati
 # Export and Anomaly Detection
 app.include_router(export.router, prefix="/export", tags=["Export"])
 app.include_router(anomaly.router, prefix="/anomaly", tags=["Anomaly Detection"])
+
+# New AI Features
+app.include_router(chat.router, prefix="/chat", tags=["AI Chat"])
+app.include_router(stockout.router, prefix="/stockout", tags=["Stockout Predictor"])
+app.include_router(savings.router, prefix="/savings", tags=["Cost Savings"])
 
 # Mount static files
 # Mount static files
