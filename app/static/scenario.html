@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .sim-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #7c3aed;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.25rem 0;
+        }
+
+        .stat-lbl {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .risk-high {
+            color: #ef4444;
+        }
+
+        .risk-med {
+            color: #f59e0b;
+        }
+
+        .risk-low {
+            color: #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html" class="active">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 1.5rem 0;">
+            <h1>🎲 Quantum Scenario Simulator</h1>
+            <p class="hero-subtitle">Monte Carlo simulation of 1,000 parallel inventory futures</p>
+        </section>
+
+        <section class="card">
+            <div class="sim-controls">
+                <div class="slider-group">
+                    <div class="slider-header"><span>Demand Volatility</span><span id="volVal">20%</span></div>
+                    <input type="range" id="volatility" min="5" max="100" value="20"
+                        oninput="updateVal('vol', this.value)">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header"><span>Supplier Reliability</span><span id="relVal">95%</span></div>
+                    <input type="range" id="reliability" min="50" max="99" value="95"
+                        oninput="updateVal('rel', this.value)">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-header"><span>Stockout Penalty</span><span id="costVal">$5.00</span></div>
+                    <input type="range" id="stockoutCost" min="1" max="50" value="5"
+                        oninput="updateVal('cost', this.value)">
+                </div>
+                <button class="btn btn-primary" onclick="runSimulation()">Run 1,000 Simulations</button>
+            </div>
+
+            <div style="height: 400px; position: relative;">
+                <canvas id="simChart"></canvas>
+            </div>
+
+            <div class="stats-grid" id="stats">
+                <!-- Stats populated here -->
+            </div>
+
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(124, 58, 237, 0.1); border-radius: 8px; text-align: center;"
+                id="recommendation">
+                Running default simulation...
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let chart = null;
+
+        function updateVal(id, val) {
+            const display = id === 'cost' ? '$' + val + '.00' : val + '%';
+            document.getElementById(id + 'Val').textContent = display;
+        }
+
+        async function runSimulation() {
+            const vol = document.getElementById('volatility').value / 100;
+            const rel = document.getElementById('reliability').value / 100;
+            const cost = parseFloat(document.getElementById('stockoutCost').value);
+
+            try {
+                const response = await fetch('/scenario/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sku: "DEMO-SKU",
+                        demand_volatility: vol,
+                        supplier_reliability: rel,
+                        stockout_cost: cost
+                    })
+                });
+                const data = await response.json();
+                renderChart(data);
+                renderStats(data);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderStats(data) {
+            const probClass = data.stockout_probability > 30 ? 'risk-high' : data.stockout_probability > 10 ? 'risk-med' : 'risk-low';
+
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-val ${probClass}">${data.stockout_probability}%</div>
+                    <div class="stat-lbl">Stockout Probability</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val">$${data.expected_cost}</div>
+                    <div class="stat-lbl">Expected Cost</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val">$${data.worst_case_cost}</div>
+                    <div class="stat-lbl">Worst Case (p95)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val">$${data.best_case_cost}</div>
+                    <div class="stat-lbl">Best Case (p5)</div>
+                </div>
+            `;
+            document.getElementById('recommendation').textContent = "💡 AI Insight: " + data.recommendation;
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('simChart').getContext('2d');
+            const labels = Array.from({ length: data.percentiles.p50.length }, (_, i) => `Day ${i}`);
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Optimistic (p90)',
+                            data: data.percentiles.p90,
+                            borderColor: 'transparent',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            fill: '+1',
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Median Path',
+                            data: data.percentiles.p50,
+                            borderColor: '#7c3aed',
+                            borderWidth: 3,
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Pessimistic (p10)',
+                            data: data.percentiles.p10,
+                            borderColor: 'transparent',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Inventory Trajectory Cloud (1,000 Runs)', color: '#e0e0ff' },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            title: { display: true, text: 'Inventory Level' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // Initial run
+        runSimulation();
+    </script>
+</body>
+
+</html>

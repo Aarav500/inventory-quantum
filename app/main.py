@@ -11,6 +11,7 @@ from app.routers import upload, forecast, decision, monitoring
 from app.routers import analytics, alerts, abc, locations, reports, reorder, simulator, integrations
 from app.routers import export, anomaly
 from app.routers import chat, stockout, savings
+from app.routers import rebalancing, scenario, supplier
 
 settings = get_settings()
 
@@ -54,6 +55,11 @@ app.include_router(anomaly.router, prefix="/anomaly", tags=["Anomaly Detection"]
 app.include_router(chat.router, prefix="/chat", tags=["AI Chat"])
 app.include_router(stockout.router, prefix="/stockout", tags=["Stockout Predictor"])
 app.include_router(savings.router, prefix="/savings", tags=["Cost Savings"])
+
+# Phase 2: Advanced Features
+app.include_router(rebalancing.router, prefix="/rebalancing", tags=["Rebalancing"])
+app.include_router(scenario.router, prefix="/scenario", tags=["Scenario Simulator"])
+app.include_router(supplier.router, prefix="/supplier", tags=["Supplier Scorecard"])
 
 # Mount static files
 # Mount static files
