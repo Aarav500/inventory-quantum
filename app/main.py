@@ -83,7 +83,8 @@ async def diagnose_paths():
 
 @app.get("/")
 async def root():
-    """Redirect to dashboard."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/static/index.html")
+    """Serve dashboard at root."""
+    from fastapi.responses import FileResponse
+    index_path = Path(__file__).resolve().parent / "static" / "index.html"
+    return FileResponse(index_path, media_type="text/html")
 
