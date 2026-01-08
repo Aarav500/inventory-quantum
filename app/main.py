@@ -78,12 +78,7 @@ async def diagnose_paths():
 
 @app.get("/")
 async def root():
-    """Root endpoint with API info."""
-    return {
-        "name": settings.api_title,
-        "version": settings.api_version,
-        "docs": "/docs",
-        "health": "/health",
-        "dashboard": "/static/index.html",
-    }
+    """Redirect to dashboard."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/static/index.html")
 
