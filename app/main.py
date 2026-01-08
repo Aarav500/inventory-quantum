@@ -9,6 +9,7 @@ import os
 from app.config import get_settings
 from app.routers import upload, forecast, decision, monitoring
 from app.routers import analytics, alerts, abc, locations, reports, reorder, simulator, integrations
+from app.routers import export, anomaly
 
 settings = get_settings()
 
@@ -43,6 +44,10 @@ app.include_router(reports.router, prefix="/reports", tags=["Reports"])
 app.include_router(reorder.router, prefix="/reorder", tags=["Reorder"])
 app.include_router(simulator.router, prefix="/simulator", tags=["Simulator"])
 app.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])
+
+# Export and Anomaly Detection
+app.include_router(export.router, prefix="/export", tags=["Export"])
+app.include_router(anomaly.router, prefix="/anomaly", tags=["Anomaly Detection"])
 
 # Mount static files
 # Mount static files
