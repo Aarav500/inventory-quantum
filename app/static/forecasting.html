@@ -11,9 +11,10 @@
 </head>
 
 <body>
-    <nav class="navbar">
+        <nav class="navbar">
         <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
-                <div class="nav-links">
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
             <a href="index.html">Home</a>
             <a href="forecasting.html" class="active">Forecasting</a>
             <a href="chat.html">AI Chat</a>
@@ -28,7 +29,6 @@
             <a href="reorder.html">Reorder</a>
             <a href="integrations.html">Integrations</a>
         </div>
-
     </nav>
 
     <main class="container">
