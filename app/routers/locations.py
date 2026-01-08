@@ -6,6 +6,9 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 import random
+import math
+
+from app.routers.upload import get_data
 
 router = APIRouter()
 
@@ -71,7 +74,7 @@ class OptimizationResult(BaseModel):
     reason: str
 
 
-# Demo locations
+# Static demo locations
 demo_locations = [
     Location(
         id="loc-001",
@@ -145,8 +148,6 @@ async def get_locations(
 ):
     """
     List all locations.
-    
-    Returns warehouses, stores, and distribution centers.
     """
     result = locations.copy()
     
@@ -209,23 +210,69 @@ async def get_location_inventory(
 ):
     """
     Get inventory at a specific location.
+    Uses uploaded CSV data if available to generate realistic stock levels.
     """
     # Verify location exists
     if not any(loc.id == location_id for loc in locations):
         raise HTTPException(status_code=404, detail="Location not found")
     
-    # Generate demo inventory
+    df = get_data()
+    
     inventory = []
-    for i in range(min(limit, 30)):
-        inventory.append(LocationInventory(
-            sku=f"SKU-{str(i+1).zfill(4)}",
-            name=f"Product {i+1}",
-            quantity=random.randint(0, 500),
-            min_level=random.randint(10, 50),
-            max_level=random.randint(200, 500),
-            reorder_point=random.randint(20, 100),
-            last_updated=datetime.now().isoformat()
-        ))
+    
+    if df is not None:
+        # Generate inventory based on real SKUs
+        # Use location_id to deterministically filter or scale stock
+        skus = df['sku'].unique()
+        
+        # Pick a random subset of SKUs for this location (simulating distribution)
+        # Use simple hashing to keep it consistent
+        loc_seed = int(sum(ord(c) for c in location_id))
+        random.seed(loc_seed)
+        
+        # Determine subset size (e.g. 60% of SKUs are in this location)
+        subset_size = int(len(skus) * 0.6)
+        location_skus = random.sample(list(skus), min(len(skus), subset_size))
+        
+        for sku in location_skus[:limit]:
+            sku_data = df[df['sku'] == sku]
+            
+            # Base quantity from data
+            total_qty = 0
+            if 'quantity_on_hand' in sku_data.columns and not sku_data['quantity_on_hand'].isna().all():
+                 total_qty = int(sku_data['quantity_on_hand'].iloc[-1])
+            else:
+                 # Estimate from demand
+                 avg_demand = sku_data['quantity_sold'].mean()
+                 total_qty = int(avg_demand * 14)
+            
+            # Distribute quantity to this location (e.g. 30-70% of total)
+            loc_qty = int(total_qty * random.uniform(0.3, 0.7))
+            
+            inventory.append(LocationInventory(
+                sku=str(sku),
+                name=str(sku),
+                quantity=loc_qty,
+                min_level=int(loc_qty * 0.2),
+                max_level=int(loc_qty * 1.5),
+                reorder_point=int(loc_qty * 0.3),
+                last_updated=datetime.now().isoformat()
+            ))
+            
+        random.seed() # reset
+        
+    else:
+        # Fallback to demo data
+        for i in range(min(limit, 30)):
+            inventory.append(LocationInventory(
+                sku=f"SKU-{str(i+1).zfill(4)}",
+                name=f"Demo Product {i+1}",
+                quantity=random.randint(0, 500),
+                min_level=random.randint(10, 50),
+                max_level=random.randint(200, 500),
+                reorder_point=random.randint(20, 100),
+                last_updated=datetime.now().isoformat()
+            ))
     
     return inventory
 
@@ -270,14 +317,19 @@ async def optimize_stock_distribution(
 ):
     """
     Calculate optimal stock distribution across locations.
-    
-    Uses demand patterns and location proximity to recommend stock rebalancing.
+    Uses uploaded CSV data SKUs where available.
     """
     results = []
-    demo_skus = [sku] if sku else ["SKU-0001", "SKU-0005", "SKU-0012"]
+    df = get_data()
+    
+    if df is not None:
+        target_skus = [sku] if sku else df['sku'].unique().tolist()[:3]
+    else:
+        target_skus = [sku] if sku else ["SKU-0001", "SKU-0005", "SKU-0012"]
     
     for loc in locations:
-        for s in demo_skus:
+        for s in target_skus:
+            # Simulate optimization logic
             current = random.randint(50, 300)
             optimal = random.randint(80, 250)
             diff = optimal - current
@@ -295,7 +347,7 @@ async def optimize_stock_distribution(
             results.append(OptimizationResult(
                 location_id=loc.id,
                 location_name=loc.name,
-                sku=s,
+                sku=str(s),
                 current_stock=current,
                 optimal_stock=optimal,
                 action=action,
@@ -311,6 +363,9 @@ async def get_map_data():
     """
     Get location data formatted for map visualization.
     """
+    # Recalculate utilization based on hypothetical inventory
+    # (Simplified for map display)
+    
     return {
         "locations": [
             {

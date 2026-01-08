@@ -6,8 +6,11 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from enum import Enum
 import uuid
-import random
 import math
+import numpy as np
+import pandas as pd
+
+from app.routers.upload import get_data
 
 router = APIRouter()
 
@@ -72,25 +75,122 @@ demo_suppliers = [
     "Direct Source Inc."
 ]
 
+# Store suggestions/history in memory (in a real app this would be in DB)
+suggestions_cache: List[ReorderSuggestion] = []
+history_cache: List[ReorderHistory] = []
+
 
 def calculate_eoq(annual_demand: int, ordering_cost: float, holding_cost: float) -> int:
     """Calculate Economic Order Quantity."""
     if holding_cost <= 0 or annual_demand <= 0:
-        return 100  # Default
+        return 100
     eoq = math.sqrt((2 * annual_demand * ordering_cost) / holding_cost)
     return max(1, round(eoq))
+
+
+def generate_suggestions_from_data(df) -> List[ReorderSuggestion]:
+    """Generate reorder suggestions from uploaded CSV data."""
+    suggestions = []
+    
+    # Get unique SKUs
+    skus = df['sku'].unique()
+    
+    for sku in skus:
+        sku_data = df[df['sku'] == sku].sort_values('date')
+        
+        # Calculate demand stats
+        avg_demand = sku_data['quantity_sold'].mean()
+        std_demand = sku_data['quantity_sold'].std() if len(sku_data) > 1 else avg_demand * 0.2
+        
+        # Current stock (latest)
+        if 'quantity_on_hand' in sku_data.columns and not sku_data['quantity_on_hand'].isna().all():
+            current_stock = int(sku_data['quantity_on_hand'].iloc[-1])
+        else:
+            # Fallback if no stock info
+            current_stock = int(avg_demand * 10)
+            
+        # Lead time
+        lead_time = 7
+        if 'lead_time_days' in sku_data.columns:
+             val = sku_data['lead_time_days'].iloc[0]
+             if not pd.isna(val):
+                 lead_time = int(val)
+        
+        # Safety Stock formula: Z * std_dev * sqrt(lead_time)
+        # Assuming 95% service level (Z=1.65)
+        safety_stock = int(1.65 * std_demand * math.sqrt(lead_time))
+        
+        # Reorder Point = (Avg Demand * Lead Time) + Safety Stock
+        reorder_point = int((avg_demand * lead_time) + safety_stock)
+        
+        # If below reorder point, suggest order
+        if current_stock <= reorder_point:
+            # Days until stockout
+            days_out = int(current_stock / avg_demand) if avg_demand > 0 else 30
+            
+            # Urgency
+            if days_out <= lead_time / 2:
+                urgency = UrgencyLevel.CRITICAL
+            elif days_out <= lead_time:
+                urgency = UrgencyLevel.HIGH
+            elif days_out <= lead_time * 2:
+                urgency = UrgencyLevel.MEDIUM
+            else:
+                urgency = UrgencyLevel.LOW
+                
+            # Suggest Quantity (EOQ based)
+            # Default costs if not in data
+            ordering_cost = 50.0
+            unit_cost = 10.0
+            if 'price' in sku_data.columns:
+                 val = sku_data['price'].iloc[0]
+                 if not pd.isna(val):
+                     unit_cost = float(val)
+            
+            holding_cost = unit_cost * 0.2 # 20% holding cost rate
+            annual_demand = int(avg_demand * 365)
+            
+            suggested_qty = calculate_eoq(annual_demand, ordering_cost, holding_cost)
+            
+            # Ensure we order enough to cover lead time deficit
+            deficit = reorder_point - current_stock
+            suggested_qty = max(suggested_qty, deficit + int(avg_demand * 7))
+            
+            suggestions.append(ReorderSuggestion(
+                id=f"sug-{uuid.uuid4().hex[:8]}",
+                sku=str(sku),
+                product_name=str(sku),
+                current_stock=current_stock,
+                reorder_point=reorder_point,
+                safety_stock=safety_stock,
+                suggested_quantity=suggested_qty,
+                unit_cost=round(unit_cost, 2),
+                total_cost=round(unit_cost * suggested_qty, 2),
+                urgency=urgency,
+                days_until_stockout=days_out,
+                supplier=demo_suppliers[hash(str(sku)) % len(demo_suppliers)],
+                lead_time_days=lead_time,
+                created_at=datetime.now().isoformat(),
+                status="pending"
+            ))
+            
+    # Sort by urgency
+    urgency_order = {UrgencyLevel.CRITICAL: 0, UrgencyLevel.HIGH: 1, 
+                     UrgencyLevel.MEDIUM: 2, UrgencyLevel.LOW: 3}
+    suggestions.sort(key=lambda x: urgency_order[x.urgency])
+    return suggestions
 
 
 def generate_demo_suggestions(count: int = 20) -> List[ReorderSuggestion]:
     """Generate demo reorder suggestions."""
     suggestions = []
+    import random
     
     for i in range(count):
         current = random.randint(5, 100)
         reorder_point = random.randint(20, 80)
         safety = random.randint(10, 30)
         
-        # Only suggest if below reorder point
         if current <= reorder_point:
             days_out = max(1, int((current - safety) / max(1, random.randint(5, 20))))
             
@@ -108,8 +208,8 @@ def generate_demo_suggestions(count: int = 20) -> List[ReorderSuggestion]:
             
             suggestions.append(ReorderSuggestion(
                 id=f"sug-{uuid.uuid4().hex[:8]}",
-                sku=f"SKU-{str(i+1).zfill(4)}",
-                product_name=f"Product {i+1}",
+                sku=f"DEMO-SKU-{str(i+1).zfill(4)}",
+                product_name=f"Demo Product {i+1}",
                 current_stock=current,
                 reorder_point=reorder_point,
                 safety_stock=safety,
@@ -123,17 +223,9 @@ def generate_demo_suggestions(count: int = 20) -> List[ReorderSuggestion]:
                 created_at=datetime.now().isoformat(),
                 status="pending"
             ))
-    
-    # Sort by urgency
-    urgency_order = {UrgencyLevel.CRITICAL: 0, UrgencyLevel.HIGH: 1, 
-                     UrgencyLevel.MEDIUM: 2, UrgencyLevel.LOW: 3}
-    suggestions.sort(key=lambda x: urgency_order[x.urgency])
-    
+            
+    suggestions.sort(key=lambda x: x.days_until_stockout)
     return suggestions
-
-
-# Store suggestions in memory
-suggestions_cache: List[ReorderSuggestion] = []
 
 
 @router.get("/suggestions", response_model=List[ReorderSuggestion])
@@ -143,15 +235,17 @@ async def get_reorder_suggestions(
     limit: int = Query(50, ge=1, le=200)
 ):
     """
-    Get reorder recommendations.
-    
-    Returns items that need to be reordered based on stock levels and demand forecasts.
+    Get reorder recommendations using uploaded data.
     """
     global suggestions_cache
     
-    # Refresh suggestions if empty
+    # Try to populate from data if cache is empty
     if not suggestions_cache:
-        suggestions_cache = generate_demo_suggestions(30)
+        df = get_data()
+        if df is not None:
+            suggestions_cache = generate_suggestions_from_data(df)
+        else:
+            suggestions_cache = generate_demo_suggestions(30)
     
     result = suggestions_cache.copy()
     
@@ -177,10 +271,22 @@ class CalculateRequest(BaseModel):
 async def calculate_optimal_quantity(request: CalculateRequest):
     """
     Calculate optimal reorder quantity using EOQ model.
-    
-    Uses Economic Order Quantity formula to minimize total inventory costs.
     """
-    annual_demand = request.annual_demand or random.randint(1000, 10000)
+    annual_demand = request.annual_demand
+    
+    # Try to get annual demand from real data if not provided
+    if annual_demand is None:
+        df = get_data()
+        if df is not None:
+            sku_data = df[df['sku'] == request.sku]
+            if len(sku_data) > 0:
+                avg_daily = sku_data['quantity_sold'].mean()
+                annual_demand = int(avg_daily * 365)
+    
+    if annual_demand is None:
+        import random
+        annual_demand = random.randint(1000, 10000)
+        
     holding_cost = request.unit_cost * request.holding_cost_rate
     
     eoq = calculate_eoq(annual_demand, request.ordering_cost, holding_cost)
@@ -207,8 +313,6 @@ async def calculate_optimal_quantity(request: CalculateRequest):
 async def approve_suggestion(suggestion_id: str):
     """
     Approve a reorder suggestion.
-    
-    Marks the suggestion as approved for ordering.
     """
     for sug in suggestions_cache:
         if sug.id == suggestion_id:
@@ -256,9 +360,9 @@ async def get_reorder_history(
 ):
     """
     Get historical reorder records.
-    
-    Shows past purchase orders and their status.
     """
+    # This remains demo data since we don't have a database of order history
+    import random
     history = []
     
     for i in range(min(limit, 20)):
@@ -267,7 +371,7 @@ async def get_reorder_history(
         
         history.append(ReorderHistory(
             id=f"ord-{uuid.uuid4().hex[:8]}",
-            sku=f"SKU-{str(random.randint(1, 100)).zfill(4)}",
+            sku=f"DEMO-SKU-{str(random.randint(1, 100)).zfill(4)}",
             quantity=random.randint(50, 500),
             unit_cost=round(random.uniform(5, 200), 2),
             total_cost=round(random.uniform(500, 10000), 2),
@@ -284,7 +388,15 @@ async def get_reorder_history(
 @router.get("/stats")
 async def get_reorder_stats():
     """Get reorder statistics summary."""
-    suggestions = suggestions_cache or generate_demo_suggestions(30)
+    # Ensure suggestions are generated
+    if not suggestions_cache:
+        df = get_data()
+        if df is not None:
+            suggestions_cache.extend(generate_suggestions_from_data(df))
+        else:
+            suggestions_cache.extend(generate_demo_suggestions(30))
+            
+    suggestions = suggestions_cache
     
     return {
         "pending_suggestions": len([s for s in suggestions if s.status == "pending"]),
