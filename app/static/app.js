@@ -110,13 +110,13 @@ const FEATURE_EXPLANATIONS = {
     }
 };
 
-// Sample datasets metadata
+// Sample datasets metadata - FIX: Use absolute static paths
 const SAMPLE_DATASETS = {
-    1: { name: 'Minimal', file: 'sample_data/1_minimal.csv', columns: 3, expectedAccuracy: 70 },
-    2: { name: 'Basic', file: 'sample_data/2_basic.csv', columns: 4, expectedAccuracy: 78 },
-    3: { name: 'Standard', file: 'sample_data/3_standard.csv', columns: 6, expectedAccuracy: 85 },
-    4: { name: 'Advanced', file: 'sample_data/4_advanced.csv', columns: 8, expectedAccuracy: 90 },
-    5: { name: 'Complete', file: 'sample_data/5_complete.csv', columns: 12, expectedAccuracy: 95 }
+    1: { name: 'Minimal', file: '/static/sample_data/1_minimal.csv', columns: 3, expectedAccuracy: 70 },
+    2: { name: 'Basic', file: '/static/sample_data/2_basic.csv', columns: 4, expectedAccuracy: 78 },
+    3: { name: 'Standard', file: '/static/sample_data/3_standard.csv', columns: 6, expectedAccuracy: 85 },
+    4: { name: 'Advanced', file: '/static/sample_data/4_advanced.csv', columns: 8, expectedAccuracy: 90 },
+    5: { name: 'Complete', file: '/static/sample_data/5_complete.csv', columns: 12, expectedAccuracy: 95 }
 };
 
 // Global state
@@ -157,38 +157,39 @@ function updateThemeIcon(theme) {
 function initUploadArea() {
     const uploadArea = document.getElementById('upload-area');
     const fileInput = document.getElementById('file-input');
-    
+
     if (!uploadArea || !fileInput) return;
-    
+
     uploadArea.addEventListener('click', () => fileInput.click());
-    
+
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.classList.add('dragover');
     });
-    
+
     uploadArea.addEventListener('dragleave', () => {
         uploadArea.classList.remove('dragover');
     });
-    
+
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadArea.classList.remove('dragover');
         const files = e.dataTransfer.files;
         if (files.length > 0) handleFile(files[0]);
     });
-    
+
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) handleFile(e.target.files[0]);
     });
 }
 
-function handleFile(file) {
+async function handleFile(file) {
     if (!file.name.endsWith('.csv')) {
         alert('Please upload a CSV file');
         return;
     }
-    
+
+    // 1. Process Validated CSV Client-Side for Preview
     const reader = new FileReader();
     reader.onload = (e) => {
         const content = e.target.result;
@@ -200,12 +201,35 @@ function handleFile(file) {
         saveDataToStorage(data, file.name);
     };
     reader.readAsText(file);
+
+    // 2. Upload to Server for Backend Processing
+    await uploadToServer(file);
+}
+
+async function uploadToServer(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/upload/', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            console.error('Upload failed:', await response.text());
+        } else {
+            console.log('File uploaded to server successfully');
+        }
+    } catch (e) {
+        console.error('Error uploading file:', e);
+    }
 }
 
 function parseCSV(content) {
     const lines = content.trim().split('\n');
     if (lines.length < 2) return { headers: [], rows: [] };
-    
+
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
     const rows = lines.slice(1).map(line => {
         const values = line.split(',');
@@ -213,14 +237,23 @@ function parseCSV(content) {
         headers.forEach((h, i) => row[h] = values[i]?.trim() || '');
         return row;
     });
-    
+
     return { headers, rows };
+}
+
+function dataToCSV(data) {
+    if (!data || !data.headers || !data.rows) return '';
+    const headers = data.headers.join(',');
+    const rows = data.rows.map(row => data.headers.map(h => row[h]).join(',')).join('\n');
+    return headers + '\n' + rows;
 }
 
 async function loadSample(level) {
     const sample = SAMPLE_DATASETS[level];
     try {
         const response = await fetch(sample.file);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
         const content = await response.text();
         const data = parseCSV(content);
         currentData = data;
@@ -228,6 +261,11 @@ async function loadSample(level) {
         displayDataPreview(data);
         assessDataQuality(data);
         saveDataToStorage(data, sample.name);
+
+        // Convert to File object and upload to server
+        const file = new File([content], `${sample.name.toLowerCase()}_sample.csv`, { type: 'text/csv' });
+        await uploadToServer(file);
+
     } catch (e) {
         console.error('Error loading sample:', e);
         // Generate demo data if file not found
@@ -235,7 +273,7 @@ async function loadSample(level) {
     }
 }
 
-function generateDemoData(level) {
+async function generateDemoData(level) {
     const baseColumns = ['date', 'sku', 'quantity_sold'];
     const additionalColumns = {
         2: ['quantity_on_hand'],
@@ -243,10 +281,10 @@ function generateDemoData(level) {
         4: ['quantity_on_hand', 'price', 'lead_time_days', 'holding_cost', 'ordering_cost'],
         5: ['quantity_on_hand', 'price', 'lead_time_days', 'holding_cost', 'ordering_cost', 'stockout_cost', 'category', 'region', 'promotion']
     };
-    
+
     const headers = [...baseColumns, ...(additionalColumns[level] || [])];
     const rows = [];
-    
+
     for (let d = 0; d < 30; d++) {
         const date = new Date(2024, 0, d + 1);
         const row = {
@@ -254,7 +292,7 @@ function generateDemoData(level) {
             sku: 'PROD-A',
             quantity_sold: Math.floor(40 + Math.random() * 30)
         };
-        
+
         if (headers.includes('quantity_on_hand')) row.quantity_on_hand = Math.floor(50 + Math.random() * 150);
         if (headers.includes('price')) row.price = '29.99';
         if (headers.includes('lead_time_days')) row.lead_time_days = '7';
@@ -264,80 +302,85 @@ function generateDemoData(level) {
         if (headers.includes('category')) row.category = 'Electronics';
         if (headers.includes('region')) row.region = 'North';
         if (headers.includes('promotion')) row.promotion = Math.random() > 0.85 ? '1' : '0';
-        
+
         rows.push(row);
     }
-    
+
     currentData = { headers, rows };
     currentDataName = SAMPLE_DATASETS[level].name;
     displayDataPreview(currentData);
     assessDataQuality(currentData);
     saveDataToStorage(currentData, currentDataName);
+
+    // Upload generated demo data to server as well
+    const csvContent = dataToCSV(currentData);
+    const file = new File([csvContent], `demo_${currentDataName.toLowerCase()}.csv`, { type: 'text/csv' });
+    await uploadToServer(file);
 }
 
 function displayDataPreview(data) {
     const preview = document.getElementById('data-preview');
     const stats = document.getElementById('preview-stats');
     const table = document.getElementById('preview-table');
-    
+
     if (!preview) return;
     preview.style.display = 'block';
-    
+
     // Stats
     const uniqueSkus = new Set(data.rows.map(r => r.sku)).size;
-    const dateRange = data.rows.length > 0 ? 
+    const dateRange = data.rows.length > 0 ?
         `${data.rows[0].date} to ${data.rows[data.rows.length - 1].date}` : 'N/A';
-    
+
     stats.innerHTML = `
         <div class="stat-item"><div class="stat-value">${data.rows.length}</div><div class="stat-label">Records</div></div>
         <div class="stat-item"><div class="stat-value">${data.headers.length}</div><div class="stat-label">Columns</div></div>
         <div class="stat-item"><div class="stat-value">${uniqueSkus}</div><div class="stat-label">SKUs</div></div>
     `;
-    
+
     // Table
     const headerRow = `<tr>${data.headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
-    const bodyRows = data.rows.slice(0, 10).map(row => 
+    const bodyRows = data.rows.slice(0, 10).map(row =>
         `<tr>${data.headers.map(h => `<td>${row[h] || '-'}</td>`).join('')}</tr>`
     ).join('');
-    
+
     table.innerHTML = `<thead>${headerRow}</thead><tbody>${bodyRows}</tbody>`;
-    
+
     preview.scrollIntoView({ behavior: 'smooth' });
 }
 
 function assessDataQuality(data) {
     const qualityDiv = document.getElementById('data-quality');
     const indicators = document.getElementById('quality-indicators');
-    
+
     if (!qualityDiv) return;
     qualityDiv.style.display = 'block';
-    
+
     const requiredCols = ['date', 'sku', 'quantity_sold'];
     const optionalCols = ['quantity_on_hand', 'price', 'lead_time_days', 'holding_cost', 'ordering_cost', 'stockout_cost', 'promotion', 'category', 'region'];
-    
+
     let html = '';
-    
+
     requiredCols.forEach(col => {
         const present = data.headers.includes(col);
         const icon = present ? '✓' : '✗';
         const status = present ? 'quality-good' : 'quality-missing';
         html += `<div class="quality-item"><div class="quality-status ${status}">${icon}</div><div>${col}</div></div>`;
     });
-    
+
     optionalCols.forEach(col => {
         const present = data.headers.includes(col);
         const icon = present ? '✓' : '○';
         const status = present ? 'quality-good' : 'quality-warning';
         html += `<div class="quality-item"><div class="quality-status ${status}">${icon}</div><div>${col}</div></div>`;
     });
-    
+
     indicators.innerHTML = html;
 }
 
 function initFeatureExplanations() {
     const container = document.getElementById('feature-explanations');
     if (!container) return;
-    
+
     let html = '';
     Object.entries(FEATURE_EXPLANATIONS).forEach(([key, feature]) => {
         const reqBadge = feature.required ? '<span class="tag tag-required">Required</span>' : '<span class="tag" style="background:#6b7280;">Optional</span>';
@@ -356,7 +399,7 @@ function initFeatureExplanations() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
