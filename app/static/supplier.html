@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Supplier Scorecard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .supplier-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .supplier-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .sup-header h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.25rem;
+        }
+
+        .sup-id {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .star-rating {
+            color: #f59e0b;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        .score-huge {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #e0e0ff;
+            line-height: 1;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .grade-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            width: 24px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .grade-A {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .grade-B {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .grade-C {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .grade-D {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .trend-up {
+            color: #10b981;
+        }
+
+        .trend-down {
+            color: #ef4444;
+        }
+
+        /* Mobile responsive for supplier cards */
+        @media (max-width: 768px) {
+            .supplier-card {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                padding: 1.25rem;
+            }
+
+            .supplier-card>div {
+                border-left: none !important;
+                padding-left: 0 !important;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .supplier-card>div:first-child {
+                border-top: none;
+                padding-top: 0;
+            }
+
+            .sup-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .score-huge {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .supplier-card {
+                padding: 1rem;
+            }
+
+            .sup-header h3 {
+                font-size: 1rem;
+            }
+
+            .score-huge {
+                font-size: 1.75rem;
+            }
+
+            .star-rating {
+                font-size: 1.2rem;
+            }
+
+            .metric-row {
+                font-size: 0.8rem;
+            }
+
+            .grade-badge {
+                font-size: 0.75rem;
+                padding: 2px 6px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')"
+            aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html" class="active">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 1.5rem 0;">
+            <h1>🚚 Supplier Scorecard</h1>
+            <p class="hero-subtitle">Track vendor performance, reliability, and lead time variability</p>
+        </section>
+
+        <div class="supplier-grid" id="suppliers">
+            <!-- Loaded dynamically -->
+        </div>
+    </main>
+
+    <script>
+        async function loadSuppliers() {
+            try {
+                const response = await fetch('/supplier/scores');
+                const suppliers = await response.json();
+                renderSuppliers(suppliers);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderStars(score) {
+            const full = Math.floor(score);
+            const half = score % 1 >= 0.5;
+            return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - Math.ceil(score));
+        }
+
+        function renderSuppliers(suppliers) {
+            document.getElementById('suppliers').innerHTML = suppliers.map((s, i) => `
+                <div class="supplier-card">
+                    <div class="sup-header">
+                        <h3>${i + 1}. ${s.name}</h3>
+                        <div class="sup-id">${s.id} • ${s.cost_competitiveness} Cost</div>
+                        <div style="margin-top: 1rem;">
+                            <div class="score-huge">${s.overall_score}</div>
+                            <div class="star-rating">${renderStars(s.overall_score)}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                        <div style="margin-bottom: 0.5rem; color: var(--text-secondary);">Avg Lead Time</div>
+                        <div style="font-size: 1.5rem; font-weight: 600;">${s.avg_lead_time} days</div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary);">± ${s.variance_days} days variance</div>
+                    </div>
+
+                    <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem;">
+                        ${s.metrics.map(m => `
+                            <div class="metric-row">
+                                <span>${m.name}</span>
+                                <div>
+                                    <span style="font-weight: 600; margin-right: 8px;">${m.score}%</span>
+                                    <span class="grade-badge grade-${m.grade}">${m.grade}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        loadSuppliers();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Integrations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .integrations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .connected-count {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .integrations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .integration-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .integration-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .integration-card.connected {
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .integration-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .integration-logo.shopify {
+            background: rgba(150, 191, 72, 0.2);
+        }
+
+        .integration-logo.quickbooks {
+            background: rgba(44, 160, 28, 0.2);
+        }
+
+        .integration-logo.sap {
+            background: rgba(0, 143, 211, 0.2);
+        }
+
+        .integration-logo.woocommerce {
+            background: rgba(150, 88, 138, 0.2);
+        }
+
+        .integration-logo.square {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .integration-info h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.connected {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status-badge.disconnected {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .integration-description {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .features-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-tag {
+            background: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .complexity-badge {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .complexity-badge.easy {
+            color: #10b981;
+        }
+
+        .complexity-badge.medium {
+            color: #f59e0b;
+        }
+
+        .complexity-badge.advanced {
+            color: #ef4444;
+        }
+
+        .sync-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .sync-stat {
+            text-align: center;
+        }
+
+        .sync-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .sync-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn.connect {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        .action-btn.connect:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .action-btn.sync {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .action-btn.sync:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+
+        .action-btn.disconnect {
+            background: rgba(239, 68, 68, 0.1);
+            color: #94a3b8;
+        }
+
+        .action-btn.disconnect:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .action-btn.docs {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+        }
+
+        .action-btn.docs:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            color: #fff;
+        }
+
+        .sync-history {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .history-table th {
+            color: #94a3b8;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .sync-status {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .sync-status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .sync-status.partial {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .sync-status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+        }
+
+        .oauth-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+        <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html" class="active">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 2rem 0;">
+            <div class="integrations-header">
+                <div>
+                    <h1>🔗 Integrations</h1>
+                    <p class="hero-subtitle">Connect your inventory system to external platforms</p>
+                </div>
+                <div class="connected-count" id="connected-count">0 Connected</div>
+            </div>
+        </section>
+
+        <!-- Connected Integrations -->
+        <h2 class="section-title">✅ Connected</h2>
+        <div class="integrations-grid" id="connected-grid">
+            <div class="loading">Loading integrations...</div>
+        </div>
+
+        <!-- Available Integrations -->
+        <h2 class="section-title">🛍️ Available Integrations</h2>
+        <div class="integrations-grid" id="available-grid">
+            <div class="loading">Loading...</div>
+        </div>
+
+        <!-- Sync History -->
+        <div class="sync-history">
+            <h2 class="section-title">📜 Sync History</h2>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Status</th>
+                        <th>Items Synced</th>
+                        <th>Errors</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                    <tr>
+                        <td colspan="5">Loading history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Connect Modal -->
+    <div class="modal" id="connect-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Connect Integration</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <p style="color: #94a3b8; margin-bottom: 1.5rem;">
+                    Enter your API credentials to connect and sync inventory data.
+                </p>
+                <div id="shopify-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Store URL *</label>
+                        <input type="text" id="shopify-store" placeholder="yourstore.myshopify.com">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key *</label>
+                        <input type="text" id="shopify-api-key" placeholder="Your Shopify API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>API Secret *</label>
+                        <input type="password" id="shopify-api-secret" placeholder="Your Shopify API Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Access Token *</label>
+                        <input type="password" id="shopify-access-token" placeholder="Admin API Access Token">
+                    </div>
+                </div>
+                <div id="quickbooks-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Company ID *</label>
+                        <input type="text" id="qb-company-id" placeholder="Your QuickBooks Company ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client ID *</label>
+                        <input type="text" id="qb-client-id" placeholder="OAuth Client ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret *</label>
+                        <input type="password" id="qb-client-secret" placeholder="OAuth Client Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Refresh Token *</label>
+                        <input type="password" id="qb-refresh-token" placeholder="OAuth Refresh Token">
+                    </div>
+                </div>
+                <div id="sap-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>SAP Host URL *</label>
+                        <input type="text" id="sap-host" placeholder="https://your-sap-instance.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Client ID *</label>
+                        <input type="text" id="sap-client-id" placeholder="SAP API Client ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret *</label>
+                        <input type="password" id="sap-client-secret" placeholder="SAP API Client Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Company Code</label>
+                        <input type="text" id="sap-company-code" placeholder="e.g., 1000">
+                    </div>
+                </div>
+                <div id="woocommerce-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Store URL *</label>
+                        <input type="text" id="woo-store" placeholder="https://yourstore.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Consumer Key *</label>
+                        <input type="text" id="woo-consumer-key" placeholder="WooCommerce Consumer Key">
+                    </div>
+                    <div class="form-group">
+                        <label>Consumer Secret *</label>
+                        <input type="password" id="woo-consumer-secret" placeholder="WooCommerce Consumer Secret">
+                    </div>
+                </div>
+                <div id="amazon-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Seller ID *</label>
+                        <input type="text" id="amazon-seller-id" placeholder="Your Seller ID">
+                    </div>
+                    <div class="form-group">
+                        <label>MWS Auth Token *</label>
+                        <input type="password" id="amazon-auth-token" placeholder="MWS/SP-API Auth Token">
+                    </div>
+                    <div class="form-group">
+                        <label>Marketplace Region *</label>
+                        <select id="amazon-region"
+                            style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.2); color: #fff;">
+                            <option value="us">North America (US/CA/MX)</option>
+                            <option value="eu">Europe (UK/DE/FR/IT/ES)</option>
+                            <option value="fe">Far East (JP/AU/SG)</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="flipkart-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>App Id *</label>
+                        <input type="text" id="flipkart-app-id" placeholder="Flipkart Application ID">
+                    </div>
+                    <div class="form-group">
+                        <label>App Secret *</label>
+                        <input type="password" id="flipkart-app-secret" placeholder="Flipkart Application Secret">
+                    </div>
+                </div>
+                <div id="ebay-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Client ID *</label>
+                        <input type="text" id="ebay-client-id" placeholder="eBay Developer Client ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret *</label>
+                        <input type="password" id="ebay-client-secret" placeholder="eBay Developer Client Secret">
+                    </div>
+                    <div class="form-group">
+                        <label>Environment</label>
+                        <select id="ebay-env"
+                            style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.2); color: #fff;">
+                            <option value="sandbox">Sandbox (Testing)</option>
+                            <option value="production">Production</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="generic-fields" class="provider-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>API Key *</label>
+                        <input type="text" id="generic-api-key" placeholder="Your API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>API Secret</label>
+                        <input type="password" id="generic-api-secret" placeholder="Your API Secret (if required)">
+                    </div>
+                </div>
+                <p style="color: #64748b; font-size: 0.8rem; margin-top: 1rem;">
+                    🔒 Your credentials are encrypted and stored securely. <a href="/static/docs.html#security"
+                        style="color: #818cf8;">Learn more</a>
+                </p>
+                <button class="oauth-btn" onclick="connectProvider()">Connect Integration</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        const API_BASE = '';
+        let currentProvider = null;
+
+        const providerEmojis = {
+            shopify: '🛍️',
+            quickbooks: '📊',
+            sap: '🏢',
+            woocommerce: '🛒',
+            square: '⬛',
+            magento: '🧡',
+            netsuite: '☁️',
+            amazon: '📦',
+            flipkart: '🛍️',
+            ebay: '🔨',
+            walmart: '🏬',
+            etsy: '🧶',
+            salesforce: '☁️'
+        };
+
+        async function loadIntegrations() {
+            try {
+                // Load connected
+                const connectedRes = await fetch(`${API_BASE}/integrations`);
+                const connected = await connectedRes.json();
+
+                // Load available
+                const availableRes = await fetch(`${API_BASE}/integrations/available`);
+                const available = await availableRes.json();
+
+                // Update count
+                document.getElementById('connected-count').textContent = `${connected.length} Connected`;
+
+                // Render connected
+                const connectedGrid = document.getElementById('connected-grid');
+                if (connected.length === 0) {
+                    connectedGrid.innerHTML = '<p style="color: #94a3b8;">No integrations connected yet. Choose one from below!</p>';
+                } else {
+                    connectedGrid.innerHTML = connected.map(int => `
+                        <div class="integration-card connected">
+                            <div class="card-header">
+                                <div class="integration-logo ${int.provider}">
+                                    ${providerEmojis[int.provider] || '🔗'}
+                                </div>
+                                <div class="integration-info">
+                                    <h3>${int.name}</h3>
+                                    <span class="status-badge connected">Connected</span>
+                                </div>
+                            </div>
+                            
+                            <div class="sync-stats">
+                                <div class="sync-stat">
+                                    <div class="sync-value">${int.items_synced.toLocaleString()}</div>
+                                    <div class="sync-label">Items Synced</div>
+                                </div>
+                                <div class="sync-stat">
+                                    <div class="sync-value">${int.last_sync ? 'Just now' : 'Never'}</div>
+                                    <div class="sync-label">Last Sync</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-actions">
+                                <button class="action-btn sync" onclick="syncProvider('${int.provider}')">🔄 Sync Now</button>
+                                <button class="action-btn disconnect" onclick="disconnectProvider('${int.provider}')">Disconnect</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Filter out connected from available
+                const connectedProviders = connected.map(c => c.provider);
+                const availableFiltered = available.filter(a => !connectedProviders.includes(a.provider));
+
+                // Render available
+                const availableGrid = document.getElementById('available-grid');
+                availableGrid.innerHTML = availableFiltered.map(int => `
+                    <div class="integration-card">
+                        <div class="card-header">
+                            <div class="integration-logo ${int.provider}">
+                                ${providerEmojis[int.provider] || '🔗'}
+                            </div>
+                            <div class="integration-info">
+                                <h3>${int.name}</h3>
+                                <span class="complexity-badge ${int.setup_complexity}">
+                                    ${int.setup_complexity.charAt(0).toUpperCase() + int.setup_complexity.slice(1)} setup
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <p class="integration-description">${int.description}</p>
+                        
+                        <div class="features-list">
+                            ${int.features.slice(0, 4).map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                        </div>
+                        
+                        <div class="card-actions">
+                            <button class="action-btn connect" onclick="openConnectModal('${int.provider}', '${int.name}')">Connect</button>
+                            <button class="action-btn docs" onclick="window.open('${int.documentation_url}', '_blank')">Docs</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error('Error loading integrations:', e);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch(`${API_BASE}/integrations/sync-history`);
+                const history = await res.json();
+
+                const tbody = document.getElementById('history-tbody');
+                tbody.innerHTML = history.map(h => `
+                    <tr>
+                        <td style="text-transform: capitalize;">${h.provider}</td>
+                        <td><span class="sync-status ${h.status}">${h.status}</span></td>
+                        <td>${h.items_synced}</td>
+                        <td>${h.errors}</td>
+                        <td style="color: #94a3b8;">Just now</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Error loading history:', e);
+            }
+        }
+
+        function openConnectModal(provider, name) {
+            currentProvider = provider;
+            document.getElementById('modal-title').textContent = `Connect ${name}`;
+
+            // Hide all provider fields first
+            document.querySelectorAll('.provider-fields').forEach(el => el.style.display = 'none');
+
+            // Show appropriate fields for the provider
+            const fieldId = provider + '-fields';
+            const fields = document.getElementById(fieldId);
+            if (fields) {
+                fields.style.display = 'block';
+            } else {
+                document.getElementById('generic-fields').style.display = 'block';
+            }
+
+            document.getElementById('connect-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('connect-modal').classList.remove('active');
+            currentProvider = null;
+        }
+
+        async function connectProvider() {
+            if (!currentProvider) return;
+
+            // Gather credentials based on provider
+            let credentials = {};
+
+            if (currentProvider === 'shopify') {
+                credentials = {
+                    store_url: document.getElementById('shopify-store').value,
+                    api_key: document.getElementById('shopify-api-key').value,
+                    api_secret: document.getElementById('shopify-api-secret').value,
+                    access_token: document.getElementById('shopify-access-token').value
+                };
+                if (!credentials.store_url || !credentials.api_key || !credentials.access_token) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'quickbooks') {
+                credentials = {
+                    company_id: document.getElementById('qb-company-id').value,
+                    client_id: document.getElementById('qb-client-id').value,
+                    client_secret: document.getElementById('qb-client-secret').value,
+                    refresh_token: document.getElementById('qb-refresh-token').value
+                };
+                if (!credentials.company_id || !credentials.client_id || !credentials.client_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'sap') {
+                credentials = {
+                    host_url: document.getElementById('sap-host').value,
+                    client_id: document.getElementById('sap-client-id').value,
+                    client_secret: document.getElementById('sap-client-secret').value,
+                    company_code: document.getElementById('sap-company-code').value
+                };
+                if (!credentials.host_url || !credentials.client_id || !credentials.client_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'woocommerce') {
+                credentials = {
+                    store_url: document.getElementById('woo-store').value,
+                    consumer_key: document.getElementById('woo-consumer-key').value,
+                    consumer_secret: document.getElementById('woo-consumer-secret').value
+                };
+                if (!credentials.store_url || !credentials.consumer_key || !credentials.consumer_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'amazon') {
+                credentials = {
+                    api_key: document.getElementById('amazon-seller-id').value,
+                    access_token: document.getElementById('amazon-auth-token').value
+                };
+                if (!credentials.api_key || !credentials.access_token) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'flipkart') {
+                credentials = {
+                    client_id: document.getElementById('flipkart-app-id').value,
+                    client_secret: document.getElementById('flipkart-app-secret').value
+                };
+                if (!credentials.client_id || !credentials.client_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else if (currentProvider === 'ebay') {
+                credentials = {
+                    client_id: document.getElementById('ebay-client-id').value,
+                    client_secret: document.getElementById('ebay-client-secret').value
+                };
+                if (!credentials.client_id || !credentials.client_secret) {
+                    showNotification('Please fill in all required fields', 'error');
+                    return;
+                }
+            } else {
+                credentials = {
+                    api_key: document.getElementById('generic-api-key').value,
+                    api_secret: document.getElementById('generic-api-secret').value
+                };
+                if (!credentials.api_key) {
+                    showNotification('Please enter an API key', 'error');
+                    return;
+                }
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/integrations/${currentProvider}/connect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(credentials)
+                });
+
+                if (res.ok) {
+                    closeModal();
+                    loadIntegrations();
+                    showNotification('Integration connected successfully!', 'success');
+                } else {
+                    const error = await res.json();
+                    showNotification(error.detail || 'Connection failed', 'error');
+                }
+            } catch (e) {
+                console.error('Error connecting:', e);
+                showNotification('Connection failed. Check your credentials.', 'error');
+            }
+        }
+
+        async function syncProvider(provider) {
+            showNotification('Syncing...', 'info');
+            try {
+                const res = await fetch(`${API_BASE}/integrations/${provider}/sync`, { method: 'POST' });
+                const result = await res.json();
+                showNotification(`Synced ${result.items_synced} items in ${result.duration_seconds.toFixed(1)}s`, 'success');
+                loadIntegrations();
+                loadHistory();
+            } catch (e) {
+                console.error('Error syncing:', e);
+                showNotification('Sync failed. Check connection.', 'error');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Remove existing notification
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                info: '#6366f1'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                background: ${colors[type]};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.remove(), 4000);
+        }
+
+        async function disconnectProvider(provider) {
+            if (!confirm('Are you sure you want to disconnect this integration?')) return;
+
+            try {
+                await fetch(`${API_BASE}/integrations/${provider}/disconnect`, { method: 'DELETE' });
+                loadIntegrations();
+            } catch (e) {
+                console.error('Error disconnecting:', e);
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('connect-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Initialize
+        loadIntegrations();
+        loadHistory();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+        <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container docs-container">
+        <section class="page-header">
+            <h1>📚 Documentation</h1>
+            <p>Technical overview of the Inventory Quantum system</p>
+        </section>
+
+        <div class="docs-grid">
+            <aside class="docs-nav">
+                <h3>Contents</h3>
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#data">Data Requirements</a></li>
+                    <li><a href="#forecasting">Forecasting</a></li>
+                    <li><a href="#optimization">Optimization</a></li>
+                    <li><a href="#monitoring">Monitoring</a></li>
+                    <li><a href="#references">References</a></li>
+                </ul>
+            </aside>
+
+            <div class="docs-content">
+                <section id="overview" class="doc-section">
+                    <h2>Overview</h2>
+                    <p>Inventory Quantum is a research-grade inventory optimization system combining:</p>
+                    <ul>
+                        <li><strong>Temporal Fusion Transformer (TFT)</strong> - Google's state-of-the-art forecasting
+                            model</li>
+                        <li><strong>Conformal Prediction</strong> - Distribution-free uncertainty quantification</li>
+                        <li><strong>QAOA</strong> - Quantum Approximate Optimization Algorithm simulation</li>
+                        <li><strong>Conservative Q-Learning</strong> - Offline reinforcement learning</li>
+                    </ul>
+                </section>
+
+                <section id="data" class="doc-section">
+                    <h2>Data Requirements</h2>
+                    <p>The system adapts to available features. Minimum required:</p>
+                    <table>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Required</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>date</td>
+                            <td>Date</td>
+                            <td>✓</td>
+                            <td>Date of observation (YYYY-MM-DD)</td>
+                        </tr>
+                        <tr>
+                            <td>sku</td>
+                            <td>String</td>
+                            <td>✓</td>
+                            <td>Product identifier</td>
+                        </tr>
+                        <tr>
+                            <td>quantity_sold</td>
+                            <td>Integer</td>
+                            <td>✓</td>
+                            <td>Units sold</td>
+                        </tr>
+                        <tr>
+                            <td>quantity_on_hand</td>
+                            <td>Integer</td>
+                            <td></td>
+                            <td>Current inventory level</td>
+                        </tr>
+                        <tr>
+                            <td>price</td>
+                            <td>Float</td>
+                            <td></td>
+                            <td>Unit price</td>
+                        </tr>
+                        <tr>
+                            <td>lead_time_days</td>
+                            <td>Integer</td>
+                            <td></td>
+                            <td>Supplier lead time</td>
+                        </tr>
+                        <tr>
+                            <td>holding_cost</td>
+                            <td>Float</td>
+                            <td></td>
+                            <td>Cost per unit per period</td>
+                        </tr>
+                        <tr>
+                            <td>ordering_cost</td>
+                            <td>Float</td>
+                            <td></td>
+                            <td>Fixed cost per order</td>
+                        </tr>
+                        <tr>
+                            <td>promotion</td>
+                            <td>Binary</td>
+                            <td></td>
+                            <td>Promotion indicator (0/1)</td>
+                        </tr>
+                        <tr>
+                            <td>category</td>
+                            <td>String</td>
+                            <td></td>
+                            <td>Product category</td>
+                        </tr>
+                        <tr>
+                            <td>region</td>
+                            <td>String</td>
+                            <td></td>
+                            <td>Geographic region</td>
+                        </tr>
+                    </table>
+                    <p class="note"><strong>Note:</strong> More features = higher accuracy. System gracefully degrades
+                        with missing features.</p>
+                </section>
+
+                <section id="forecasting" class="doc-section">
+                    <h2>Forecasting Methods</h2>
+
+                    <h3>Temporal Fusion Transformer (TFT)</h3>
+                    <p>Key components:</p>
+                    <ul>
+                        <li><strong>Variable Selection Network (VSN)</strong> - Learns feature importance automatically
+                        </li>
+                        <li><strong>Gated Residual Network (GRN)</strong> - Flexible nonlinear transformations</li>
+                        <li><strong>Multi-Head Attention</strong> - Interpretable temporal patterns</li>
+                        <li><strong>Quantile Regression</strong> - Probabilistic outputs</li>
+                    </ul>
+
+                    <h3>Conformal Prediction</h3>
+                    <p>Provides guaranteed coverage: P(Y ∈ [L, U]) ≥ 1 - α</p>
+                    <ul>
+                        <li><strong>Split Conformal</strong> - Simple calibration-based</li>
+                        <li><strong>CQR</strong> - Conformalized Quantile Regression</li>
+                        <li><strong>Adaptive</strong> - Adjusts for non-exchangeable data</li>
+                    </ul>
+                </section>
+
+                <section id="optimization" class="doc-section">
+                    <h2>Optimization</h2>
+
+                    <h3>QUBO Formulation</h3>
+                    <p>Inventory decisions are encoded as Quadratic Unconstrained Binary Optimization problems:</p>
+                    <pre>min x<sup>T</sup>Qx where x ∈ {0,1}<sup>n</sup></pre>
+                    <p>Binary encoding allows for exact order quantities using positional representation.</p>
+
+                    <h3>QAOA</h3>
+                    <p>Variational quantum algorithm with classical optimization loop:</p>
+                    <ol>
+                        <li>Initialize in superposition |+⟩<sup>⊗n</sup></li>
+                        <li>Apply cost unitary U<sub>C</sub>(γ) = exp(-iγC)</li>
+                        <li>Apply mixer unitary U<sub>M</sub>(β) = exp(-iβB)</li>
+                        <li>Measure and optimize (γ, β) classically</li>
+                    </ol>
+                </section>
+
+                <section id="monitoring" class="doc-section">
+                    <h2>Drift Detection</h2>
+                    <p>Detection methods that work without ground truth labels:</p>
+                    <ul>
+                        <li><strong>PSI</strong> - Population Stability Index for binned distributions</li>
+                        <li><strong>KS Test</strong> - Kolmogorov-Smirnov for continuous distributions</li>
+                        <li><strong>JS Divergence</strong> - Jensen-Shannon for symmetric comparison</li>
+                    </ul>
+                </section>
+
+                <section id="references" class="doc-section">
+                    <h2>References</h2>
+                    <ol class="references">
+                        <li>Lim et al. (2021) - <a href="https://arxiv.org/abs/1912.09363">Temporal Fusion
+                                Transformers</a></li>
+                        <li>Romano et al. (2019) - <a href="https://arxiv.org/abs/1905.03222">Conformalized Quantile
+                                Regression</a></li>
+                        <li>Farhi et al. (2014) - <a href="https://arxiv.org/abs/1411.4028">QAOA</a></li>
+                        <li>Kumar et al. (2020) - <a href="https://arxiv.org/abs/2006.04779">Conservative Q-Learning</a>
+                        </li>
+                    </ol>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <style>
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .docs-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .docs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .docs-nav {
+            position: sticky;
+            top: 100px;
+        }
+
+        .docs-nav h3 {
+            margin-bottom: 1rem;
+            color: #8b8ba7;
+        }
+
+        .docs-nav ul {
+            list-style: none;
+        }
+
+        .docs-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .docs-nav a {
+            color: #e0e0ff;
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+
+        .docs-nav a:hover {
+            background: rgba(124, 58, 237, 0.2);
+        }
+
+        .docs-content {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .doc-section {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .doc-section h2 {
+            margin-bottom: 1rem;
+            color: #7c3aed;
+        }
+
+        .doc-section h3 {
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        .doc-section p {
+            color: #c0c0d0;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .doc-section ul,
+        .doc-section ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .doc-section li {
+            margin-bottom: 0.5rem;
+            color: #c0c0d0;
+        }
+
+        .doc-section table {
+            width: 100%;
+            margin: 1rem 0;
+            border-collapse: collapse;
+        }
+
+        .doc-section th,
+        .doc-section td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .doc-section th {
+            color: #8b8ba7;
+            font-weight: 500;
+        }
+
+        .doc-section pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+
+        .note {
+            background: rgba(124, 58, 237, 0.1);
+            border-left: 3px solid #7c3aed;
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .references a {
+            color: #06b6d4;
+        }
+    </style>
+</body>
+
+</html>

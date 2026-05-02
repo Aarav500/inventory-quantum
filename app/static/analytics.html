@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Analytics</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .metric-change.positive {
+            color: #10b981;
+        }
+
+        .metric-change.negative {
+            color: #ef4444;
+        }
+
+        .chart-container {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .time-selector {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .time-btn {
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-btn.active,
+        .time-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+            color: #fff;
+        }
+
+        .trend-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .trend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .trend-sku {
+            font-weight: 600;
+        }
+
+        .trend-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .trend-badge.increasing {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .trend-badge.decreasing {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .trend-badge.stable {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .seasonality-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 4px;
+        }
+
+        .month-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .month-cell.peak {
+            background: rgba(16, 185, 129, 0.6);
+            color: #fff;
+        }
+
+        .month-cell.low {
+            background: rgba(239, 68, 68, 0.6);
+            color: #fff;
+        }
+
+        .month-cell.normal {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+        <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 2rem 0;">
+            <h1>📈 Historical Analytics</h1>
+            <p class="hero-subtitle">Track forecast performance and identify demand patterns over time</p>
+        </section>
+
+        <!-- Key Metrics -->
+        <div class="analytics-grid">
+            <div class="metric-card">
+                <div class="metric-value" id="current-mape">--</div>
+                <div class="metric-label">Current MAPE</div>
+                <div class="metric-change positive" id="mape-change">↓ Improving</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="forecast-accuracy">--</div>
+                <div class="metric-label">Forecast Accuracy</div>
+                <div class="metric-change positive" id="accuracy-change">↑ +2.3% vs last month</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="total-forecasts">--</div>
+                <div class="metric-label">Forecasts (30d)</div>
+                <div class="metric-change" id="forecasts-change">Active predictions</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="seasonal-items">--</div>
+                <div class="metric-label">Seasonal Items</div>
+                <div class="metric-change" id="seasonal-note">Detected patterns</div>
+            </div>
+        </div>
+
+        <!-- Accuracy Trend Chart -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3 class="chart-title">📊 Forecast Accuracy Over Time</h3>
+                <div class="time-selector">
+                    <button class="time-btn" onclick="loadAccuracy(7)">7D</button>
+                    <button class="time-btn active" onclick="loadAccuracy(30)">30D</button>
+                    <button class="time-btn" onclick="loadAccuracy(90)">90D</button>
+                </div>
+            </div>
+            <div id="accuracy-chart" style="height: 350px;"></div>
+        </div>
+
+        <!-- Two-column layout -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Demand Trends -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">📈 Demand Trends</h3>
+                </div>
+                <div class="trend-list" id="trend-list">
+                    <div class="loading">Loading trends...</div>
+                </div>
+            </div>
+
+            <!-- Seasonality -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">🌡️ Seasonality Patterns</h3>
+                </div>
+                <div id="seasonality-content">
+                    <div class="loading">Loading patterns...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3 class="chart-title">⚖️ Forecast vs Actual Comparison</h3>
+            </div>
+            <div id="comparison-chart" style="height: 300px;"></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        const API_BASE = '';
+
+        async function loadSummary() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics/summary`);
+                const data = await res.json();
+
+                document.getElementById('current-mape').textContent = data.current_mape + '%';
+                document.getElementById('forecast-accuracy').textContent = data.forecast_accuracy + '%';
+                document.getElementById('total-forecasts').textContent = data.total_forecasts_30d.toLocaleString();
+                document.getElementById('seasonal-items').textContent = data.skus_with_seasonality;
+            } catch (e) {
+                console.error('Error loading summary:', e);
+            }
+        }
+
+        async function loadAccuracy(days = 30) {
+            // Update active button
+            document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            try {
+                const res = await fetch(`${API_BASE}/analytics/accuracy-history?days=${days}`);
+                const data = await res.json();
+
+                const trace1 = {
+                    x: data.map(d => d.date),
+                    y: data.map(d => d.mape),
+                    name: 'MAPE (%)',
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { color: '#6366f1', width: 2 },
+                    marker: { size: 4 }
+                };
+
+                const trace2 = {
+                    x: data.map(d => d.date),
+                    y: data.map(d => d.rmse),
+                    name: 'RMSE',
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    yaxis: 'y2',
+                    line: { color: '#10b981', width: 2 },
+                    marker: { size: 4 }
+                };
+
+                const layout = {
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#94a3b8' },
+                    margin: { t: 20, r: 60, b: 40, l: 60 },
+                    xaxis: { gridcolor: 'rgba(148, 163, 184, 0.1)' },
+                    yaxis: {
+                        title: 'MAPE (%)',
+                        gridcolor: 'rgba(148, 163, 184, 0.1)',
+                        side: 'left'
+                    },
+                    yaxis2: {
+                        title: 'RMSE',
+                        overlaying: 'y',
+                        side: 'right',
+                        gridcolor: 'rgba(148, 163, 184, 0.1)'
+                    },
+                    legend: { x: 0, y: 1.1, orientation: 'h' },
+                    showlegend: true
+                };
+
+                Plotly.newPlot('accuracy-chart', [trace1, trace2], layout, { responsive: true });
+            } catch (e) {
+                console.error('Error loading accuracy:', e);
+            }
+        }
+
+        async function loadTrends() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics/demand-trends?limit=6`);
+                const data = await res.json();
+
+                const container = document.getElementById('trend-list');
+                container.innerHTML = data.map(item => `
+                    <div class="trend-item">
+                        <div>
+                            <div class="trend-sku">${item.sku}</div>
+                            <div style="color: #94a3b8; font-size: 0.85rem;">
+                                Avg: ${item.average_demand.toLocaleString()} units
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="trend-badge ${item.trend}">${item.trend}</span>
+                            <div style="color: ${item.growth_rate >= 0 ? '#10b981' : '#ef4444'}; font-size: 0.85rem; margin-top: 0.25rem;">
+                                ${item.growth_rate >= 0 ? '+' : ''}${item.growth_rate}%
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Error loading trends:', e);
+                document.getElementById('trend-list').innerHTML = '<div class="error">Failed to load trends</div>';
+            }
+        }
+
+        async function loadSeasonality() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics/seasonality?limit=4`);
+                const data = await res.json();
+
+                const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+                const container = document.getElementById('seasonality-content');
+
+                container.innerHTML = data.map(item => `
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600;">${item.sku}</span>
+                            <span style="color: ${item.has_seasonality ? '#10b981' : '#94a3b8'}; font-size: 0.85rem;">
+                                ${item.has_seasonality ? `Strength: ${(item.seasonality_strength * 100).toFixed(0)}%` : 'No pattern'}
+                            </span>
+                        </div>
+                        <div class="seasonality-grid">
+                            ${months.map((m, i) => {
+                    const isPeak = item.peak_months.includes(i + 1);
+                    const isLow = item.low_months.includes(i + 1);
+                    const cls = isPeak ? 'peak' : isLow ? 'low' : 'normal';
+                    return `<div class="month-cell ${cls}">${m}</div>`;
+                }).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Error loading seasonality:', e);
+            }
+        }
+
+        async function loadComparison() {
+            try {
+                const res = await fetch(`${API_BASE}/analytics/compare`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+
+                // Group by SKU
+                const skus = [...new Set(data.map(d => d.sku))];
+                const colors = ['#6366f1', '#10b981', '#f59e0b'];
+
+                const traces = [];
+                skus.forEach((sku, i) => {
+                    const skuData = data.filter(d => d.sku === sku);
+                    traces.push({
+                        x: skuData.map(d => d.period),
+                        y: skuData.map(d => d.forecast),
+                        name: `${sku} Forecast`,
+                        type: 'bar',
+                        marker: { color: colors[i % 3], opacity: 0.7 }
+                    });
+                    traces.push({
+                        x: skuData.map(d => d.period),
+                        y: skuData.map(d => d.actual),
+                        name: `${sku} Actual`,
+                        type: 'scatter',
+                        mode: 'markers',
+                        marker: { color: colors[i % 3], size: 10, symbol: 'diamond' }
+                    });
+                });
+
+                const layout = {
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    font: { color: '#94a3b8' },
+                    margin: { t: 20, r: 20, b: 40, l: 60 },
+                    xaxis: { gridcolor: 'rgba(148, 163, 184, 0.1)' },
+                    yaxis: { title: 'Quantity', gridcolor: 'rgba(148, 163, 184, 0.1)' },
+                    barmode: 'group',
+                    legend: { x: 0, y: 1.15, orientation: 'h' }
+                };
+
+                Plotly.newPlot('comparison-chart', traces, layout, { responsive: true });
+            } catch (e) {
+                console.error('Error loading comparison:', e);
+            }
+        }
+
+        // Load all data
+        loadSummary();
+        loadAccuracy(30);
+        loadTrends();
+        loadSeasonality();
+        loadComparison();
+    </script>
+</body>
+
+</html>

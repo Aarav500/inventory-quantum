@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Stockout Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .risk-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.3s;
+        }
+
+        .risk-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .risk-critical {
+            border-left: 4px solid #ef4444;
+        }
+
+        .risk-high {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .risk-medium {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .risk-low {
+            border-left: 4px solid #10b981;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .badge-high {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .badge-medium {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .badge-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .risk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .risk-sku {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .risk-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .risk-stat {
+            text-align: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .risk-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .risk-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+        }
+
+        .critical-value {
+            color: #ef4444;
+        }
+
+        .warning-value {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body>
+        <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html" class="active">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 1.5rem 0;">
+            <h1>⚠️ Stockout Predictor</h1>
+            <p class="hero-subtitle">Predict and prevent inventory shortages before they happen</p>
+        </section>
+
+        <div class="summary-cards" id="summary"></div>
+
+        <section class="card">
+            <h2>📦 Items at Risk</h2>
+            <p class="section-desc">Items sorted by risk score - highest risk first</p>
+            <div class="risk-grid" id="riskGrid"></div>
+        </section>
+    </main>
+
+    <script>
+        async function loadPredictions() {
+            try {
+                const response = await fetch('/stockout/predictions?limit=12');
+                const data = await response.json();
+                renderSummary(data.summary);
+                renderRiskGrid(data.predictions);
+            } catch (e) {
+                console.error('Error loading predictions:', e);
+            }
+        }
+
+        function renderSummary(summary) {
+            document.getElementById('summary').innerHTML = `
+                <div class="summary-card">
+                    <div class="summary-value critical-value">${summary.critical_count}</div>
+                    <div class="summary-label">Critical Risk</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value warning-value">${summary.high_count}</div>
+                    <div class="summary-label">High Risk</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${summary.items_needing_action}</div>
+                    <div class="summary-label">Need Action</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${summary.average_days_to_stockout}</div>
+                    <div class="summary-label">Avg Days to Stockout</div>
+                </div>
+            `;
+        }
+
+        function renderRiskGrid(predictions) {
+            document.getElementById('riskGrid').innerHTML = predictions.map(p => `
+                <div class="risk-card risk-${p.risk_level}">
+                    <div class="risk-header">
+                        <span class="risk-sku">${p.sku}</span>
+                        <span class="risk-badge badge-${p.risk_level}">${p.risk_level}</span>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">${p.name}</p>
+                    <div class="risk-stats">
+                        <div class="risk-stat">
+                            <div class="risk-stat-value">${p.days_until_stockout}</div>
+                            <div class="risk-stat-label">Days Left</div>
+                        </div>
+                        <div class="risk-stat">
+                            <div class="risk-stat-value">${p.current_stock}</div>
+                            <div class="risk-stat-label">In Stock</div>
+                        </div>
+                        <div class="risk-stat">
+                            <div class="risk-stat-value">${p.avg_daily_demand}</div>
+                            <div class="risk-stat-label">Daily Demand</div>
+                        </div>
+                        <div class="risk-stat">
+                            <div class="risk-stat-value">${p.recommended_order_qty}</div>
+                            <div class="risk-stat-label">Order Qty</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        loadPredictions();
+    </script>
+</body>
+
+</html>

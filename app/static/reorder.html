@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Reorder</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .stat-number.critical {
+            color: #ef4444;
+        }
+
+        .stat-number.high {
+            color: #f59e0b;
+        }
+
+        .stat-number.value {
+            color: #10b981;
+            font-size: 1.5rem;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+            color: #fff;
+        }
+
+        .approve-all-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .approve-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .suggestion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .suggestion-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .suggestion-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .suggestion-card.critical {
+            border-left: 4px solid #ef4444;
+        }
+
+        .suggestion-card.high {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .suggestion-card.medium {
+            border-left: 4px solid #6366f1;
+        }
+
+        .suggestion-card.low {
+            border-left: 4px solid #94a3b8;
+        }
+
+        .suggestion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .sku-info h4 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .sku-info p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin: 0.25rem 0 0;
+        }
+
+        .urgency-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .urgency-badge.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .urgency-badge.high {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .urgency-badge.medium {
+            background: rgba(99, 102, 241, 0.2);
+            color: #6366f1;
+        }
+
+        .urgency-badge.low {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .stock-levels {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .stock-item {
+            text-align: center;
+        }
+
+        .stock-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .stock-value.low {
+            color: #ef4444;
+        }
+
+        .stock-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .suggestion-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-label {
+            color: #94a3b8;
+        }
+
+        .stockout-warning {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 6px;
+            margin: 0.75rem 0;
+            font-size: 0.85rem;
+            color: #ef4444;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn.approve {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .action-btn.approve:hover {
+            background: rgba(16, 185, 129, 0.4);
+        }
+
+        .action-btn.reject {
+            background: rgba(239, 68, 68, 0.1);
+            color: #94a3b8;
+        }
+
+        .action-btn.reject:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .eoq-section {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .eoq-form {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr) auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .form-group label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+        }
+
+        .eoq-result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .eoq-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+        <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html" class="active">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero" style="padding: 2rem 0;">
+            <h1>🛒 Auto-Reorder Suggestions</h1>
+            <p class="hero-subtitle">AI-powered purchase recommendations based on demand forecasts and optimal inventory
+                levels</p>
+        </section>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number" id="pending-count">--</div>
+                <div class="stat-label">Pending Suggestions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number critical" id="critical-count">--</div>
+                <div class="stat-label">Critical Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number high" id="high-count">--</div>
+                <div class="stat-label">High Urgency</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number value" id="total-value">--</div>
+                <div class="stat-label">Total Value</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-days">--</div>
+                <div class="stat-label">Avg Days to Stockout</div>
+            </div>
+        </div>
+
+        <!-- Actions Bar -->
+        <div class="actions-bar">
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="filterSuggestions('all')">All</button>
+                <button class="filter-btn" onclick="filterSuggestions('critical')">Critical</button>
+                <button class="filter-btn" onclick="filterSuggestions('high')">High</button>
+                <button class="filter-btn" onclick="filterSuggestions('medium')">Medium</button>
+                <button class="filter-btn" onclick="filterSuggestions('low')">Low</button>
+            </div>
+            <button class="approve-all-btn" onclick="approveAllCritical()">
+                ✓ Approve Critical & High
+            </button>
+        </div>
+
+        <!-- Suggestions Grid -->
+        <div class="suggestion-grid" id="suggestions-grid">
+            <div class="loading">Loading suggestions...</div>
+        </div>
+
+        <!-- EOQ Calculator -->
+        <div class="eoq-section">
+            <h3 style="margin-bottom: 1rem;">📊 EOQ Calculator</h3>
+            <p style="color: #94a3b8; margin-bottom: 1rem;">Calculate optimal order quantity using Economic Order
+                Quantity formula</p>
+
+            <div class="eoq-form">
+                <div class="form-group">
+                    <label>SKU</label>
+                    <input type="text" id="eoq-sku" value="SKU-0001" placeholder="SKU ID">
+                </div>
+                <div class="form-group">
+                    <label>Annual Demand</label>
+                    <input type="number" id="eoq-demand" value="5000" placeholder="Units/year">
+                </div>
+                <div class="form-group">
+                    <label>Ordering Cost ($)</label>
+                    <input type="number" id="eoq-ordering" value="50" placeholder="Per order">
+                </div>
+                <div class="form-group">
+                    <label>Unit Cost ($)</label>
+                    <input type="number" id="eoq-unit" value="25" placeholder="Per unit">
+                </div>
+                <button class="approve-all-btn" onclick="calculateEOQ()">Calculate</button>
+            </div>
+
+            <div class="eoq-result" id="eoq-result">
+                <h4 style="margin-bottom: 1rem;">📦 Optimal Order Quantity</h4>
+                <div class="eoq-grid">
+                    <div>
+                        <div class="stat-number" id="eoq-value">--</div>
+                        <div class="stat-label">EOQ (units)</div>
+                    </div>
+                    <div>
+                        <div class="stat-number" id="orders-year">--</div>
+                        <div class="stat-label">Orders/Year</div>
+                    </div>
+                    <div>
+                        <div class="stat-number" id="cycle-days">--</div>
+                        <div class="stat-label">Order Cycle (days)</div>
+                    </div>
+                    <div>
+                        <div class="stat-number value" id="annual-cost">--</div>
+                        <div class="stat-label">Annual Cost</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        const API_BASE = '';
+        let allSuggestions = [];
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_BASE}/reorder/stats`);
+                const data = await res.json();
+
+                document.getElementById('pending-count').textContent = data.pending_suggestions;
+                document.getElementById('critical-count').textContent = data.critical_items;
+                document.getElementById('high-count').textContent = data.high_urgency_items;
+                document.getElementById('total-value').textContent = '$' + data.total_pending_value.toLocaleString();
+                document.getElementById('avg-days').textContent = data.avg_days_to_stockout;
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            }
+        }
+
+        async function loadSuggestions() {
+            try {
+                const res = await fetch(`${API_BASE}/reorder/suggestions`);
+                allSuggestions = await res.json();
+                renderSuggestions(allSuggestions);
+            } catch (e) {
+                console.error('Error loading suggestions:', e);
+            }
+        }
+
+        function renderSuggestions(suggestions) {
+            const container = document.getElementById('suggestions-grid');
+
+            if (suggestions.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #94a3b8;">No reorder suggestions at this time 🎉</div>';
+                return;
+            }
+
+            container.innerHTML = suggestions.map(s => `
+                <div class="suggestion-card ${s.urgency}">
+                    <div class="suggestion-header">
+                        <div class="sku-info">
+                            <h4>${s.sku}</h4>
+                            <p>${s.product_name}</p>
+                        </div>
+                        <span class="urgency-badge ${s.urgency}">${s.urgency}</span>
+                    </div>
+                    
+                    <div class="stock-levels">
+                        <div class="stock-item">
+                            <div class="stock-value ${s.current_stock < s.reorder_point ? 'low' : ''}">${s.current_stock}</div>
+                            <div class="stock-label">Current</div>
+                        </div>
+                        <div class="stock-item">
+                            <div class="stock-value">${s.reorder_point}</div>
+                            <div class="stock-label">Reorder Point</div>
+                        </div>
+                        <div class="stock-item">
+                            <div class="stock-value">${s.safety_stock}</div>
+                            <div class="stock-label">Safety Stock</div>
+                        </div>
+                    </div>
+                    
+                    ${s.days_until_stockout <= 7 ? `
+                        <div class="stockout-warning">
+                            ⚠️ Stockout in ${s.days_until_stockout} days
+                        </div>
+                    ` : ''}
+                    
+                    <div class="suggestion-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Suggested Quantity</span>
+                            <span><strong>${s.suggested_quantity} units</strong></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Unit Cost</span>
+                            <span>$${s.unit_cost.toFixed(2)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Total Cost</span>
+                            <span style="color: #10b981; font-weight: 600;">$${s.total_cost.toLocaleString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Supplier</span>
+                            <span>${s.supplier}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Lead Time</span>
+                            <span>${s.lead_time_days} days</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <button class="action-btn approve" onclick="approveSuggestion('${s.id}')">✓ Approve</button>
+                        <button class="action-btn reject" onclick="rejectSuggestion('${s.id}')">✕ Reject</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterSuggestions(urgency) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (urgency === 'all') {
+                renderSuggestions(allSuggestions);
+            } else {
+                renderSuggestions(allSuggestions.filter(s => s.urgency === urgency));
+            }
+        }
+
+        async function approveSuggestion(id) {
+            try {
+                await fetch(`${API_BASE}/reorder/${id}/approve`, { method: 'POST' });
+                allSuggestions = allSuggestions.filter(s => s.id !== id);
+                renderSuggestions(allSuggestions);
+                loadStats();
+            } catch (e) {
+                console.error('Error approving:', e);
+            }
+        }
+
+        async function rejectSuggestion(id) {
+            try {
+                await fetch(`${API_BASE}/reorder/${id}/reject`, { method: 'POST' });
+                allSuggestions = allSuggestions.filter(s => s.id !== id);
+                renderSuggestions(allSuggestions);
+                loadStats();
+            } catch (e) {
+                console.error('Error rejecting:', e);
+            }
+        }
+
+        async function approveAllCritical() {
+            try {
+                const res = await fetch(`${API_BASE}/reorder/approve-all`, { method: 'POST' });
+                const data = await res.json();
+                alert(`Approved ${data.approved_ids.length} suggestions`);
+                loadSuggestions();
+                loadStats();
+            } catch (e) {
+                console.error('Error approving all:', e);
+            }
+        }
+
+        async function calculateEOQ() {
+            const sku = document.getElementById('eoq-sku').value;
+            const demand = parseInt(document.getElementById('eoq-demand').value);
+            const ordering = parseFloat(document.getElementById('eoq-ordering').value);
+            const unit = parseFloat(document.getElementById('eoq-unit').value);
+
+            try {
+                const res = await fetch(`${API_BASE}/reorder/calculate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sku: sku,
+                        annual_demand: demand,
+                        ordering_cost: ordering,
+                        unit_cost: unit,
+                        holding_cost_rate: 0.25
+                    })
+                });
+                const data = await res.json();
+
+                document.getElementById('eoq-result').style.display = 'block';
+                document.getElementById('eoq-value').textContent = data.eoq;
+                document.getElementById('orders-year').textContent = data.orders_per_year;
+                document.getElementById('cycle-days').textContent = data.order_cycle_days;
+                document.getElementById('annual-cost').textContent = '$' + data.total_annual_cost.toLocaleString();
+            } catch (e) {
+                console.error('Error calculating EOQ:', e);
+            }
+        }
+
+        // Initialize
+        loadStats();
+        loadSuggestions();
+    </script>
+</body>
+
+</html>
