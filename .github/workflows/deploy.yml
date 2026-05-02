@@ -15,7 +15,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Free Disk Space
         run: |
@@ -60,119 +60,74 @@ jobs:
         env:
           S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
           AWS_REGION_VAL: ${{ secrets.AWS_REGION }}
-          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           echo "🚀 Deploying to EC2..."
-          
+
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
-          
+
           echo "📍 Instance: $INSTANCE_ID"
-          echo "📍 Bucket: $S3_BUCKET"
-          
-          # Send SSM command
+          echo "📍 Bucket:   $S3_BUCKET"
+
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Inventory Quantum" \
             --parameters "commands=[
-              \"set -e\",
-              \"echo '=== Environment Setup ===' \",
+              \"set -euo pipefail\",
+              \"export PATH=\$PATH:/usr/local/bin\",
               \"export AWS_REGION=${AWS_REGION_VAL}\",
-              \"echo 'Region: $AWS_REGION'\",
-              \"echo 'Bucket: ${S3_BUCKET}'\",
-              \"echo '=== Checking AWS CLI installation ===' \",
-              \"export PATH=$PATH:/usr/local/bin\",
-              \"if ! command -v aws &> /dev/null && [ ! -f /usr/local/bin/aws ]; then\",
-              \"  echo 'AWS CLI not found. Installing...';\",
-              \"  if [ -x \\\"$(command -v yum)\\\" ]; then\",
-              \"    sudo yum install -y awscli;\",
-              \"  else\",
-              \"    sudo apt-get update && sudo apt-get install -y unzip curl;\",
-              \"    curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o '/tmp/awscliv2.zip';\",
-              \"    unzip -q /tmp/awscliv2.zip -d /tmp;\",
-              \"    sudo /tmp/aws/install || sudo /tmp/aws/install --update;\",
-              \"    rm -rf /tmp/awscliv2.zip /tmp/aws;\",
-              \"  fi;\",
-              \"else\",
-              \"  echo 'AWS CLI already installed';\",
+
+              \"echo '=== Checking AWS CLI ==='\",
+              \"if ! command -v aws &>/dev/null; then\",
+              \"  if command -v yum &>/dev/null; then sudo yum install -y awscli;\",
+              \"  else sudo apt-get update -qq && sudo apt-get install -y unzip curl; curl -s 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o /tmp/awscliv2.zip; unzip -q /tmp/awscliv2.zip -d /tmp; sudo /tmp/aws/install --update; rm -rf /tmp/awscliv2.zip /tmp/aws; fi;\",
               \"fi\",
-              \"aws --version || /usr/local/bin/aws --version\",
-              \"echo '=== Checking Docker installation ===' \",
-              \"if ! command -v docker &> /dev/null; then\",
-              \"  echo 'Docker not found. Installing...';\",
-              \"  if [ -x \\\"$(command -v yum)\\\" ]; then\",
-              \"    echo 'Detected yum (Amazon Linux)...';\",
-              \"    sudo yum update -y; sudo yum install -y docker;\",
-              \"    sudo service docker start; sudo usermod -a -G docker ec2-user;\",
-              \"  elif [ -x \\\"$(command -v apt-get)\\\" ]; then\",
-              \"    echo 'Detected apt (Ubuntu)...';\",
-              \"    sudo apt-get update; sudo apt-get install -y docker.io;\",
-              \"    sudo service docker start; sudo usermod -a -G docker ubuntu;\",
-              \"  fi;\",
+              \"aws --version\",
+
+              \"echo '=== Checking Docker ==='\",
+              \"if ! command -v docker &>/dev/null; then\",
+              \"  if command -v yum &>/dev/null; then sudo yum update -y && sudo yum install -y docker && sudo service docker start && sudo usermod -aG docker ec2-user;\",
+              \"  else sudo apt-get update -qq && sudo apt-get install -y docker.io && sudo service docker start && sudo usermod -aG docker ubuntu; fi;\",
               \"  sudo systemctl enable docker;\",
               \"fi\",
               \"sudo service docker start || true\",
-              \"echo '=== Cleaning up ===' \",
-              \"sudo docker stop inventory-quantum 2>/dev/null || true\",
-              \"sudo docker rm inventory-quantum 2>/dev/null || true\",
-              \"sudo docker system prune -af\",
-              \"echo '=== Downloading image from S3 ===' \",
-              \"if aws s3 cp s3://${S3_BUCKET}/deployments/inventory-quantum-image.tar.gz /tmp/image.tar.gz --region ${AWS_REGION_VAL}; then\",
-              \"  echo 'Download successful'\",
-              \"  ls -lh /tmp/image.tar.gz\",
-              \"else\",
-              \"  echo '❌ S3 Download Failed! Check IAM Role permissions.'\",
-              \"  exit 1\",
-              \"fi\",
-              \"echo '=== Loading image ===' \",
-              \"gunzip -c /tmp/image.tar.gz | sudo docker load\",
-              \"sudo docker images\",
-              \"rm -f /tmp/image.tar.gz\",
 
-              \"echo '=== Starting container ===' \",
+              \"echo '=== Stop and remove old container ==='\",
+              \"sudo docker stop inventory-quantum 2>/dev/null || true\",
+              \"sudo docker rm   inventory-quantum 2>/dev/null || true\",
+
+              \"echo '=== Prune old Docker artifacts ==='\",
+              \"sudo docker system prune -af\",
+
+              \"echo '=== Stream image from S3 directly into docker load ==='\",
+              \"aws s3 cp s3://${S3_BUCKET}/deployments/inventory-quantum-image.tar.gz - --region ${AWS_REGION_VAL} | gunzip | sudo docker load || { echo 'ERROR: S3 stream/load failed – check IAM role and bucket name'; exit 1; }\",
+              \"sudo docker images\",
+
+              \"echo '=== Start container ==='\",
               \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
-              \"sleep 5\",
-              \"echo '=== Verifying container ===' \",
-              \"sudo docker ps\",
-              \"curl -s http://localhost:8000/health || echo 'Health check pending'\",
-              
-              \"echo '=== Installing Nginx ===' \",
-              \"sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx\",
-              
-              \"echo '=== Creating Nginx Config ===' \",
-              \"echo c2VydmVyIHsKICBsaXN0ZW4gODAgZGVmYXVsdF9zZXJ2ZXI7CiAgc2VydmVyX25hbWUgaW52ZW50b3J5LmFhcmF2LXNoYWguY29tOwogIGxvY2F0aW9uIC8gewogICAgcHJveHlfcGFzcyBodHRwOi8vMTI3LjAuMC4xOjgwMDAvOwogICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsKICAgIHByb3h5X3NldF9oZWFkZXIgSG9zdCAkaG9zdDsKICAgIHByb3h5X3NldF9oZWFkZXIgWC1SZWFsLUlQICRyZW1vdGVfYWRkcjsKICAgIHByb3h5X3NldF9oZWFkZXIgWC1Gb3J3YXJkZWQtRm9yICRwcm94eV9hZGRfeF9mb3J3YXJkZWRfZm9yOwogICAgcHJveHlfc2V0X2hlYWRlciBYLUZvcndhcmRlZC1Qcm90byAkc2NoZW1lOwogIH0KfQo= | base64 -d | sudo tee /etc/nginx/sites-available/inventory-quantum\",
-              \"sudo ln -sf /etc/nginx/sites-available/inventory-quantum /etc/nginx/sites-enabled/\",
-              \"sudo rm -f /etc/nginx/sites-enabled/default\",
-              
-              \"echo '=== Testing Nginx Config ===' \",
-              \"sudo nginx -t\",
-              \"sudo systemctl reload nginx\",
-              
-              \"echo '=== SSL Setup ===' \",
-              \"sudo certbot --nginx -d inventory.aarav-shah.com --non-interactive --agree-tos -m admin@aarav-shah.com --redirect || echo 'SSL setup skipped - run manually if DNS not ready'\",
-              
-              \"echo '=== Final Verification ===' \",
-              \"sudo docker logs inventory-quantum 2>&1 | head -n 20\",
-              \"echo '=== Done ===' \"
+
+              \"echo '=== Wait for /health (60 s max) ==='\",
+              \"for i in \\$(seq 1 12); do CODE=\\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/health 2>/dev/null || echo 000); if [ \\\"\\$CODE\\\" = '200' ]; then echo \\\"PASS: /health returned 200 on attempt \\$i\\\"; break; fi; echo \\\"Attempt \\$i/12: HTTP \\$CODE – retrying in 5 s...\\\"; sleep 5; if [ \\$i -eq 12 ]; then echo 'FAIL: /health never returned 200 after 60 s'; sudo docker logs inventory-quantum 2>&1 | tail -50; exit 1; fi; done\",
+
+              \"echo '=== Container status ==='\",
+              \"sudo docker ps\"
             ]" \
             --timeout-seconds 600 \
             --query "Command.CommandId" \
             --output text)
-          
-          echo "📋 Command ID: $COMMAND_ID"
-          echo "⏳ Waiting for deployment..."
-          
-          # Wait for completion
+
+          echo "📋 SSM Command ID: $COMMAND_ID"
+          echo "⏳ Waiting for SSM command to complete..."
+
           for i in {1..30}; do
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
               --instance-id "$INSTANCE_ID" \
               --query "Status" \
               --output text 2>/dev/null || echo "Pending")
-            
-            echo "Status: $STATUS"
-            
+
+            echo "[$i/30] Status: $STATUS"
+
             if [ "$STATUS" = "Success" ]; then
               echo "✅ Deployment succeeded!"
               aws ssm get-command-invocation \
@@ -182,7 +137,13 @@ jobs:
                 --output text
               break
             elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ]; then
-              echo "❌ Deployment failed!"
+              echo "❌ Remote command failed — stdout:"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardOutputContent" \
+                --output text
+              echo "--- stderr:"
               aws ssm get-command-invocation \
                 --command-id "$COMMAND_ID" \
                 --instance-id "$INSTANCE_ID" \
@@ -190,24 +151,91 @@ jobs:
                 --output text
               exit 1
             fi
-            
+
             sleep 10
+          done
+
+      - name: Post-deploy Validation
+        env:
+          AWS_REGION_VAL: ${{ secrets.AWS_REGION }}
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          echo "🔍 Running post-deploy validation via SSM..."
+
+          VALIDATION_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Post-deploy health validation" \
+            --parameters "commands=[
+              \"set -e\",
+              \"echo '--- Container status ---'\",
+              \"sudo docker inspect --format '{{.State.Status}} (health: {{.State.Health.Status}})' inventory-quantum\",
+              \"echo '--- GET /health ---'\",
+              \"HEALTH=\\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/health)\",
+              \"echo \\\"HTTP status: \\$HEALTH\\\"\",
+              \"[ \\\"\\$HEALTH\\\" = '200' ] || { echo 'FAIL: /health did not return 200'; exit 1; }\",
+              \"echo '--- HEAD /health ---'\",
+              \"HEAD_STATUS=\\$(curl -sI -o /dev/null -w '%{http_code}' http://localhost:8000/health)\",
+              \"echo \\\"HTTP status: \\$HEAD_STATUS\\\"\",
+              \"[ \\\"\\$HEAD_STATUS\\\" = '200' ] || { echo 'FAIL: HEAD /health did not return 200'; exit 1; }\",
+              \"echo '--- GET / (root) ---'\",
+              \"ROOT=\\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/)\",
+              \"echo \\\"HTTP status: \\$ROOT\\\"\",
+              \"[ \\\"\\$ROOT\\\" = '200' ] || { echo 'FAIL: / did not return 200'; exit 1; }\",
+              \"echo '--- Port 8000 listener ---'\",
+              \"ss -tlnp | grep ':8000' || { echo 'FAIL: nothing listening on 8000'; exit 1; }\",
+              \"echo '✅ All post-deploy checks passed'\"
+            ]" \
+            --timeout-seconds 60 \
+            --query "Command.CommandId" \
+            --output text)
+
+          for i in {1..12}; do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$VALIDATION_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "Status" \
+              --output text 2>/dev/null || echo "Pending")
+            if [ "$STATUS" = "Success" ]; then
+              aws ssm get-command-invocation \
+                --command-id "$VALIDATION_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardOutputContent" \
+                --output text
+              echo "✅ Validation passed"
+              break
+            elif [ "$STATUS" = "Failed" ]; then
+              echo "❌ Validation failed — stdout:"
+              aws ssm get-command-invocation \
+                --command-id "$VALIDATION_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardOutputContent" \
+                --output text
+              echo "--- stderr:"
+              aws ssm get-command-invocation \
+                --command-id "$VALIDATION_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardErrorContent" \
+                --output text
+              exit 1
+            fi
+            sleep 5
           done
 
       - name: Show Application URL
         run: |
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
-          
+
           PUBLIC_IP=$(aws ec2 describe-instances \
             --instance-ids "$INSTANCE_ID" \
             --query "Reservations[0].Instances[0].PublicIpAddress" \
             --output text)
-          
+
           echo ""
           echo "========================================"
           echo "🎉 DEPLOYMENT COMPLETE!"
           echo "========================================"
           echo "🌐 Domain: https://inventory.aarav-shah.com/static/index.html"
           echo "📊 Direct: http://$PUBLIC_IP:8000/static/index.html"
-          echo "🔌 API: https://inventory.aarav-shah.com/"
+          echo "🔌 API:    https://inventory.aarav-shah.com/"
           echo "========================================"
