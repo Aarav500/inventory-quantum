@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Monitoring</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+        <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="page-header">
+            <h1>🔍 Drift Detection & Monitoring</h1>
+            <p>Distributional shift detection without ground truth labels</p>
+        </section>
+
+        <div class="grid-2col">
+            <section class="card">
+                <h2>📊 PSI (Population Stability Index)</h2>
+                <div class="method-explain">
+                    <div class="formula">PSI = Σ (A<sub>i</sub> - E<sub>i</sub>) × ln(A<sub>i</sub>/E<sub>i</sub>)</div>
+                    <p><strong>What it measures:</strong> Compares distribution of new data vs training data across
+                        bins.</p>
+                    <p><strong>Thresholds:</strong></p>
+                    <ul>
+                        <li><span class="status-dot status-good"></span> PSI &lt; 0.1: No drift</li>
+                        <li><span class="status-dot status-warning"></span> 0.1 ≤ PSI &lt; 0.25: Moderate drift</li>
+                        <li><span class="status-dot status-error"></span> PSI ≥ 0.25: Significant drift</li>
+                    </ul>
+                </div>
+                <div id="psi-chart" style="height: 200px;"></div>
+            </section>
+
+            <section class="card">
+                <h2>📈 KS Test (Kolmogorov-Smirnov)</h2>
+                <div class="method-explain">
+                    <div class="formula">D = max|F<sub>1</sub>(x) - F<sub>2</sub>(x)|</div>
+                    <p><strong>What it measures:</strong> Maximum difference between cumulative distributions.</p>
+                    <p><strong>Why use it:</strong> Non-parametric, works for any distribution shape.</p>
+                    <p><strong>Interpretation:</strong> p-value &lt; 0.05 indicates significant difference.</p>
+                </div>
+                <div id="ks-chart" style="height: 200px;"></div>
+            </section>
+        </div>
+
+        <section class="card">
+            <h2>🚨 Drift Status by SKU</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>PSI</th>
+                        <th>KS Statistic</th>
+                        <th>KS p-value</th>
+                        <th>JS Divergence</th>
+                        <th>Status</th>
+                        <th>Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody id="drift-table">
+                    <tr>
+                        <td>SKU001</td>
+                        <td>0.08</td>
+                        <td>0.12</td>
+                        <td>0.42</td>
+                        <td>0.03</td>
+                        <td><span class="status-indicator status-good"></span>Stable</td>
+                        <td>Continue monitoring</td>
+                    </tr>
+                    <tr>
+                        <td>SKU002</td>
+                        <td>0.24</td>
+                        <td>0.31</td>
+                        <td>0.03</td>
+                        <td>0.11</td>
+                        <td><span class="status-indicator status-warning"></span>Drift</td>
+                        <td>Consider retraining</td>
+                    </tr>
+                    <tr>
+                        <td>SKU003</td>
+                        <td>0.32</td>
+                        <td>0.45</td>
+                        <td>0.001</td>
+                        <td>0.18</td>
+                        <td><span class="status-indicator status-error"></span>Severe</td>
+                        <td>Retrain immediately</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="card">
+            <h2>📉 Calibration Monitoring</h2>
+            <p class="section-desc">Verify that prediction intervals maintain their coverage over time.</p>
+            <div id="calibration-chart" style="height: 300px;"></div>
+            <div class="calibration-metrics">
+                <div class="cal-metric"><span class="cal-val" id="target-cov">95%</span><span class="cal-label">Target
+                        Coverage</span></div>
+                <div class="cal-metric"><span class="cal-val" id="actual-cov">93.2%</span><span class="cal-label">Actual
+                        Coverage</span></div>
+                <div class="cal-metric"><span class="cal-val" id="cal-gap">-1.8%</span><span
+                        class="cal-label">Calibration Gap</span></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>❓ Why Monitor Without Labels?</h2>
+            <div class="why-grid">
+                <div class="why-card">
+                    <h3>🕐 Real-time Detection</h3>
+                    <p>Ground truth (actual sales) arrives days/weeks after predictions. Monitoring needs to be
+                        proactive.</p>
+                </div>
+                <div class="why-card">
+                    <h3>📊 Input Distribution</h3>
+                    <p>If input features drift, model performance likely degrades even before we see outcomes.</p>
+                </div>
+                <div class="why-card">
+                    <h3>🎯 Early Warning</h3>
+                    <p>Detect problems early to retrain before business impact occurs.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', initCharts);
+        function initCharts() {
+            // PSI over time
+            const weeks = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'];
+            const psi = [0.05, 0.07, 0.09, 0.12, 0.18, 0.22, 0.28, 0.31];
+            Plotly.newPlot('psi-chart', [{ x: weeks, y: psi, type: 'bar', marker: { color: psi.map(v => v < 0.1 ? '#10b981' : v < 0.25 ? '#f59e0b' : '#ef4444') } }], { paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: { color: '#e0e0ff' }, xaxis: {}, yaxis: { title: 'PSI' }, shapes: [{ type: 'line', x0: -0.5, x1: 7.5, y0: 0.2, y1: 0.2, line: { color: '#ef4444', dash: 'dash', width: 2 } }], margin: { l: 50, r: 20, t: 10, b: 30 } }, { responsive: true });
+
+            // KS CDF comparison
+            const x = Array.from({ length: 50 }, (_, i) => i);
+            const cdf1 = x.map(v => 1 / (1 + Math.exp(-(v - 25) / 5)));
+            const cdf2 = x.map(v => 1 / (1 + Math.exp(-(v - 30) / 7)));
+            Plotly.newPlot('ks-chart', [{ x, y: cdf1, name: 'Reference', line: { color: '#7c3aed' } }, { x, y: cdf2, name: 'Current', line: { color: '#f59e0b' } }], { paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: { color: '#e0e0ff' }, xaxis: { title: 'Value' }, yaxis: { title: 'CDF' }, legend: { orientation: 'h', y: -0.2 }, margin: { l: 50, r: 20, t: 10, b: 50 } }, { responsive: true });
+
+            // Calibration over time
+            const days = Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`);
+            const coverage = days.map(() => 90 + Math.random() * 10);
+            Plotly.newPlot('calibration-chart', [{ x: days, y: coverage, type: 'scatter', mode: 'lines+markers', line: { color: '#06b6d4' }, name: 'Observed Coverage' }], { paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: { color: '#e0e0ff' }, xaxis: {}, yaxis: { title: 'Coverage %', range: [80, 100] }, shapes: [{ type: 'line', x0: 0, x1: 29, y0: 95, y1: 95, line: { color: '#10b981', width: 2 } }], margin: { l: 50, r: 20, t: 20, b: 50 } }, { responsive: true });
+        }
+    </script>
+
+    <style>
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .method-explain {
+            margin-bottom: 1rem;
+        }
+
+        .method-explain p {
+            color: #8b8ba7;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .method-explain ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .method-explain li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.2rem;
+            text-align: center;
+            margin: 1rem 0;
+            color: #7c3aed;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-good {
+            background: #10b981;
+        }
+
+        .status-warning {
+            background: #f59e0b;
+        }
+
+        .status-error {
+            background: #ef4444;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            color: #8b8ba7;
+            font-weight: 500;
+        }
+
+        .calibration-metrics {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 1rem;
+        }
+
+        .cal-metric {
+            text-align: center;
+        }
+
+        .cal-val {
+            display: block;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #7c3aed;
+        }
+
+        .cal-label {
+            font-size: 0.85rem;
+            color: #8b8ba7;
+        }
+
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .why-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .why-card h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .why-card p {
+            color: #8b8ba7;
+            font-size: 0.9rem;
+        }
+    </style>
+</body>
+
+</html>

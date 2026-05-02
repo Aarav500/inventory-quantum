@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum - Simulator</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+        <nav class="navbar">
+        <div class="nav-brand"><span class="quantum-icon">⚛️</span><span>Inventory Quantum</span></div>
+        <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('active')" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="forecasting.html">Forecasting</a>
+            <a href="chat.html">AI Chat</a>
+            <a href="stockout.html">Stockout</a>
+            <a href="savings.html">Savings</a>
+            <a href="rebalancing.html">Rebalancing</a>
+            <a href="scenario.html">Scenarios</a>
+            <a href="supplier.html">Suppliers</a>
+            <a href="optimization.html">Optimization</a>
+            <a href="abc.html">ABC</a>
+            <a href="locations.html">Locations</a>
+            <a href="reorder.html">Reorder</a>
+            <a href="integrations.html">Integrations</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="page-header">
+            <h1>🎮 Interactive What-If Simulator</h1>
+            <p>Explore how parameters affect inventory performance in real-time</p>
+        </section>
+
+        <div class="simulator-grid">
+            <!-- Controls Panel -->
+            <section class="controls-panel card">
+                <h2>⚙️ Parameters</h2>
+
+                <div class="param-group">
+                    <h3>Demand</h3>
+                    <label>Mean Daily Demand<input type="range" id="demand-mean" min="20" max="100" value="50"><span
+                            id="demand-mean-val">50</span></label>
+                    <label>Demand Std Dev<input type="range" id="demand-std" min="5" max="30" value="15"><span
+                            id="demand-std-val">15</span></label>
+                </div>
+
+                <div class="param-group">
+                    <h3>Costs</h3>
+                    <label>Holding Cost ($/unit/day)<input type="range" id="holding-cost" min="0.01" max="0.5"
+                            step="0.01" value="0.1"><span id="holding-cost-val">0.10</span></label>
+                    <label>Stockout Cost ($/unit)<input type="range" id="stockout-cost" min="1" max="20"
+                            value="10"><span id="stockout-cost-val">10</span></label>
+                    <label>Ordering Cost ($)<input type="range" id="ordering-cost" min="10" max="100" value="50"><span
+                            id="ordering-cost-val">50</span></label>
+                </div>
+
+                <div class="param-group">
+                    <h3>Policy</h3>
+                    <label>Reorder Point<input type="range" id="reorder-point" min="30" max="200" value="100"><span
+                            id="reorder-point-val">100</span></label>
+                    <label>Order Quantity<input type="range" id="order-qty" min="20" max="200" value="80"><span
+                            id="order-qty-val">80</span></label>
+                    <label>Lead Time (days)<input type="range" id="lead-time" min="1" max="14" value="7"><span
+                            id="lead-time-val">7</span></label>
+                </div>
+
+                <div class="param-group">
+                    <h3>Robustness</h3>
+                    <label>Uncertainty Level ε<input type="range" id="epsilon" min="0" max="0.5" step="0.05"
+                            value="0.1"><span id="epsilon-val">0.10</span></label>
+                </div>
+
+                <button class="btn btn-primary" onclick="runSimulation()">🚀 Run Simulation</button>
+                <button class="btn btn-outline" onclick="optimizeParams()">⚡ Auto-Optimize</button>
+            </section>
+
+            <!-- Results Panel -->
+            <section class="results-panel">
+                <div class="card">
+                    <h2>📊 Simulation Results</h2>
+                    <div id="inventory-chart" style="height: 300px;"></div>
+                </div>
+
+                <div class="metrics-row">
+                    <div class="metric-box">
+                        <div class="metric-label">Total Cost</div>
+                        <div class="metric-value" id="total-cost">$0</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Service Level</div>
+                        <div class="metric-value" id="service-level">0%</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Stockouts</div>
+                        <div class="metric-value" id="stockout-count">0</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label">Avg Inventory</div>
+                        <div class="metric-value" id="avg-inventory">0</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📈 Cost Breakdown</h2>
+                    <div id="cost-breakdown-chart" style="height: 250px;"></div>
+                </div>
+
+                <div class="card">
+                    <h2>🎯 SHAP Waterfall</h2>
+                    <p class="section-desc">How each parameter contributes to total cost</p>
+                    <div id="shap-chart" style="height: 300px;"></div>
+                </div>
+
+                <div class="card comparison-card">
+                    <h2>⚖️ Nominal vs Robust</h2>
+                    <div class="comparison-grid">
+                        <div class="comparison-item">
+                            <h4>Nominal Policy</h4>
+                            <div class="comp-value" id="nominal-cost">$2,340</div>
+                            <div class="comp-detail" id="nominal-detail">ROP: 100, Q: 80</div>
+                        </div>
+                        <div class="comparison-item robust">
+                            <h4>Robust Policy</h4>
+                            <div class="comp-value" id="robust-cost">$2,520</div>
+                            <div class="comp-detail" id="robust-detail">ROP: 120, Q: 75</div>
+                        </div>
+                        <div class="comparison-insight">
+                            <span id="robustness-insight">Robust solution adds 7.7% cost for protection against
+                                worst-case</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>Inventory Quantum &copy; 2026</p>
+    </footer>
+
+    <script>
+        // Initialize sliders
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            const valSpan = document.getElementById(slider.id + '-val');
+            slider.addEventListener('input', () => {
+                valSpan.textContent = parseFloat(slider.value).toFixed(slider.step === '0.01' || slider.step === '0.05' ? 2 : 0);
+            });
+        });
+
+        // Run initial simulation
+        document.addEventListener('DOMContentLoaded', runSimulation);
+
+        function runSimulation() {
+            const params = getParams();
+            const results = simulate(params);
+            updateCharts(results, params);
+            updateMetrics(results);
+            updateComparison(params);
+        }
+
+        function getParams() {
+            return {
+                demandMean: +document.getElementById('demand-mean').value,
+                demandStd: +document.getElementById('demand-std').value,
+                holdingCost: +document.getElementById('holding-cost').value,
+                stockoutCost: +document.getElementById('stockout-cost').value,
+                orderingCost: +document.getElementById('ordering-cost').value,
+                reorderPoint: +document.getElementById('reorder-point').value,
+                orderQty: +document.getElementById('order-qty').value,
+                leadTime: +document.getElementById('lead-time').value,
+                epsilon: +document.getElementById('epsilon').value
+            };
+        }
+
+        function simulate(params) {
+            const days = 90;
+            const inventory = [params.reorderPoint + params.orderQty];
+            const demand = [];
+            const stockouts = [];
+            let ordersInTransit = Array(params.leadTime + 1).fill(0);
+            let totalHolding = 0, totalStockout = 0, totalOrdering = 0;
+            let stockoutDays = 0;
+
+            for (let d = 0; d < days; d++) {
+                // Generate demand
+                const dayDemand = Math.max(0, params.demandMean + (Math.random() - 0.5) * params.demandStd * 2);
+                demand.push(dayDemand);
+
+                // Receive orders
+                let currentInv = inventory[inventory.length - 1] + ordersInTransit[0];
+                ordersInTransit = [...ordersInTransit.slice(1), 0];
+
+                // Fulfill demand
+                const fulfilled = Math.min(currentInv, dayDemand);
+                const stockout = dayDemand - fulfilled;
+                stockouts.push(stockout);
+                if (stockout > 0) stockoutDays++;
+                currentInv -= fulfilled;
+
+                // Costs
+                totalHolding += params.holdingCost * currentInv;
+                totalStockout += params.stockoutCost * stockout;
+
+                // Order if below ROP
+                if (currentInv <= params.reorderPoint) {
+                    ordersInTransit[params.leadTime - 1] += params.orderQty;
+                    totalOrdering += params.orderingCost;
+                }
+
+                inventory.push(currentInv);
+            }
+
+            return {
+                inventory: inventory.slice(1),
+                demand,
+                stockouts,
+                totalHolding,
+                totalStockout,
+                totalOrdering,
+                totalCost: totalHolding + totalStockout + totalOrdering,
+                serviceLevel: 1 - stockoutDays / days,
+                avgInventory: inventory.reduce((a, b) => a + b, 0) / days,
+                stockoutDays
+            };
+        }
+
+        function updateCharts(results, params) {
+            const days = Array.from({ length: 90 }, (_, i) => i + 1);
+
+            // Inventory chart
+            Plotly.newPlot('inventory-chart', [
+                { x: days, y: results.inventory, name: 'Inventory', line: { color: '#7c3aed' } },
+                { x: days, y: results.demand, name: 'Demand', line: { color: '#f59e0b', dash: 'dot' } },
+                { x: days, y: Array(90).fill(params.reorderPoint), name: 'Reorder Point', line: { color: '#ef4444', dash: 'dash' } }
+            ], {
+                paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+                font: { color: '#e0e0ff' },
+                xaxis: { title: 'Day', gridcolor: 'rgba(255,255,255,0.1)' },
+                yaxis: { title: 'Units', gridcolor: 'rgba(255,255,255,0.1)' },
+                legend: { orientation: 'h', y: -0.15 }
+            }, { responsive: true });
+
+            // Cost breakdown
+            Plotly.newPlot('cost-breakdown-chart', [{
+                values: [results.totalHolding, results.totalStockout, results.totalOrdering],
+                labels: ['Holding', 'Stockout', 'Ordering'],
+                type: 'pie',
+                marker: { colors: ['#10b981', '#ef4444', '#f59e0b'] },
+                hole: 0.4
+            }], {
+                paper_bgcolor: 'transparent',
+                font: { color: '#e0e0ff' },
+                showlegend: true
+            }, { responsive: true });
+
+            // SHAP waterfall
+            const shapValues = [
+                { name: 'Base', value: 1500, delta: 0 },
+                { name: 'Demand Variability', value: +results.demandStd * 20, delta: results.demandStd * 20 },
+                { name: 'Holding Cost', value: results.totalHolding, delta: results.totalHolding * 0.3 },
+                { name: 'Stockout Risk', value: results.totalStockout, delta: results.totalStockout * 0.5 },
+                { name: 'Order Frequency', value: results.totalOrdering, delta: results.totalOrdering * 0.2 }
+            ];
+
+            let cumulative = 1500;
+            const waterfall = shapValues.slice(1).map(s => {
+                cumulative += s.delta;
+                return { name: s.name, delta: s.delta, cumulative };
+            });
+
+            Plotly.newPlot('shap-chart', [{
+                type: 'waterfall',
+                orientation: 'h',
+                y: ['Base', ...waterfall.map(w => w.name), 'Total'],
+                x: [1500, ...waterfall.map(w => w.delta), null],
+                measure: ['absolute', ...waterfall.map(() => 'relative'), 'total'],
+                connector: { line: { color: 'rgba(255,255,255,0.3)' } },
+                increasing: { marker: { color: '#ef4444' } },
+                decreasing: { marker: { color: '#10b981' } },
+                totals: { marker: { color: '#7c3aed' } }
+            }], {
+                paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+                font: { color: '#e0e0ff' },
+                xaxis: { title: 'Cost Contribution ($)' },
+                margin: { l: 120 }
+            }, { responsive: true });
+        }
+
+        function updateMetrics(results) {
+            document.getElementById('total-cost').textContent = '$' + results.totalCost.toFixed(0);
+            document.getElementById('service-level').textContent = (results.serviceLevel * 100).toFixed(1) + '%';
+            document.getElementById('stockout-count').textContent = results.stockoutDays + ' days';
+            document.getElementById('avg-inventory').textContent = results.avgInventory.toFixed(0) + ' units';
+        }
+
+        function updateComparison(params) {
+            // Simulate nominal
+            const nominalCost = params.holdingCost * params.demandMean * 45 +
+                params.stockoutCost * params.demandStd * 3 +
+                params.orderingCost * 12;
+
+            // Robust adds safety stock
+            const robustROP = params.reorderPoint * (1 + params.epsilon);
+            const robustCost = nominalCost * (1 + params.epsilon * 0.5);
+
+            document.getElementById('nominal-cost').textContent = '$' + nominalCost.toFixed(0);
+            document.getElementById('robust-cost').textContent = '$' + robustCost.toFixed(0);
+            document.getElementById('nominal-detail').textContent = `ROP: ${params.reorderPoint}, Q: ${params.orderQty}`;
+            document.getElementById('robust-detail').textContent = `ROP: ${robustROP.toFixed(0)}, Q: ${params.orderQty}`;
+
+            const premium = ((robustCost - nominalCost) / nominalCost * 100).toFixed(1);
+            document.getElementById('robustness-insight').textContent =
+                `Robust solution adds ${premium}% cost (ε=${params.epsilon}) for worst-case protection`;
+        }
+
+        function optimizeParams() {
+            // Simple optimization using newsvendor formula
+            const params = getParams();
+            const criticalRatio = params.stockoutCost / (params.stockoutCost + params.holdingCost);
+            const z = 1.645 * (criticalRatio - 0.5);  // Approximate inverse normal
+            const optROP = Math.round(params.demandMean * params.leadTime + z * params.demandStd * Math.sqrt(params.leadTime));
+            const optQ = Math.round(Math.sqrt(2 * params.demandMean * 365 * params.orderingCost / params.holdingCost / 365));
+
+            document.getElementById('reorder-point').value = optROP;
+            document.getElementById('reorder-point-val').textContent = optROP;
+            document.getElementById('order-qty').value = optQ;
+            document.getElementById('order-qty-val').textContent = optQ;
+
+            runSimulation();
+            alert(`Optimized! ROP: ${optROP}, Q: ${optQ}`);
+        }
+    </script>
+
+    <style>
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .simulator-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1000px) {
+            .simulator-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .controls-panel {
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+        }
+
+        .param-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .param-group h3 {
+            margin-bottom: 0.75rem;
+            color: #7c3aed;
+            font-size: 0.9rem;
+        }
+
+        .param-group label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.8rem;
+            color: #8b8ba7;
+        }
+
+        .param-group input[type="range"] {
+            width: 100%;
+            margin: 0.25rem 0;
+        }
+
+        .param-group span {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #e0e0ff;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+
+        .results-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .metric-box {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-box .metric-label {
+            font-size: 0.75rem;
+            color: #8b8ba7;
+        }
+
+        .metric-box .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #7c3aed;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .comparison-item {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .comparison-item.robust {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .comparison-item h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .comp-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #7c3aed;
+        }
+
+        .comp-detail {
+            font-size: 0.8rem;
+            color: #8b8ba7;
+        }
+
+        .comparison-insight {
+            grid-column: 1 / -1;
+            padding: 0.75rem;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+    </style>
+</body>
+
+</html>

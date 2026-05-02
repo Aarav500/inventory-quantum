@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Quantum Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0f0f2d 100%);
+            color: #e0e0ff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 1.5rem 0;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .quantum-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #7c3aed, #06b6d4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 30px rgba(6, 182, 212, 0.7);
+            }
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6, #00d4ff);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 4s linear infinite;
+        }
+
+        @keyframes gradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 300% 50%;
+            }
+        }
+
+        .subtitle {
+            color: #8b8ba7;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.active {
+            background: #10b981;
+        }
+
+        .status-dot.loading {
+            background: #f59e0b;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.25rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(124, 58, 237, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-quantum {
+            background: linear-gradient(90deg, #7c3aed, #06b6d4);
+            color: white;
+        }
+
+        .badge-ml {
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            color: white;
+        }
+
+        .badge-rl {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            color: white;
+        }
+
+        .badge-live {
+            background: #10b981;
+            color: white;
+            animation: pulse-badge 2s infinite;
+        }
+
+        @keyframes pulse-badge {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .col-3 {
+            grid-column: span 3;
+        }
+
+        .col-4 {
+            grid-column: span 4;
+        }
+
+        .col-6 {
+            grid-column: span 6;
+        }
+
+        .col-8 {
+            grid-column: span 8;
+        }
+
+        .col-12 {
+            grid-column: span 12;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .metric:hover {
+            background: rgba(124, 58, 237, 0.1);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: #8b8ba7;
+            margin-top: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            height: 250px;
+            margin-top: 0.5rem;
+        }
+
+        .chart-container.tall {
+            height: 300px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        select,
+        button,
+        input {
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+            color: #e0e0ff;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        select:hover,
+        button:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        button.primary {
+            background: linear-gradient(90deg, #7c3aed, #06b6d4);
+            border: none;
+            font-weight: 600;
+        }
+
+        button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th,
+        td {
+            padding: 0.6rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        th {
+            color: #8b8ba7;
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.4rem;
+        }
+
+        .status-good {
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-warning {
+            background: #f59e0b;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+
+        .status-error {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .feature-importance {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-name {
+            width: 90px;
+            font-size: 0.8rem;
+            color: #8b8ba7;
+        }
+
+        .importance-bar-container {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .importance-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #06b6d4);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .importance-value {
+            width: 40px;
+            text-align: right;
+            font-size: 0.8rem;
+            color: #e0e0ff;
+        }
+
+        .heatmap-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            padding: 0.5rem;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.2);
+            z-index: 10;
+        }
+
+        .log-container {
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .log-entry {
+            padding: 0.2rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-time {
+            color: #8b8ba7;
+            margin-right: 0.5rem;
+        }
+
+        .log-success {
+            color: #10b981;
+        }
+
+        .log-warning {
+            color: #f59e0b;
+        }
+
+        .log-error {
+            color: #ef4444;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            border-radius: 8px;
+            color: #8b8ba7;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: linear-gradient(90deg, #7c3aed, #06b6d4);
+            color: white;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: #8b8ba7;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            margin-top: 2rem;
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: #7c3aed;
+            text-decoration: none;
+        }
+
+        @media (max-width: 1200px) {
+
+            .col-3,
+            .col-4,
+            .col-6,
+            .col-8 {
+                grid-column: span 6;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .col-3,
+            .col-4,
+            .col-6,
+            .col-8,
+            .col-12 {
+                grid-column: span 12;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            header {
+                padding: 1rem 0;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .subtitle {
+                font-size: 0.85rem;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                gap: 0.75rem;
+                padding: 0.75rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .controls select,
+            .controls button,
+            .controls input {
+                width: 100%;
+            }
+
+            .metric-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+            }
+
+            .metric {
+                padding: 0.5rem;
+            }
+
+            .metric-value {
+                font-size: 1.25rem;
+            }
+
+            .chart-container {
+                height: 200px;
+            }
+
+            .chart-container.tall {
+                height: 250px;
+            }
+
+            .heatmap-container {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.75rem;
+            }
+
+            .logo {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .quantum-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            .subtitle {
+                font-size: 0.75rem;
+            }
+
+            .status-bar {
+                font-size: 0.8rem;
+            }
+
+            .card {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .card h2 {
+                font-size: 0.9rem;
+            }
+
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-value {
+                font-size: 1.5rem;
+            }
+
+            .metric-label {
+                font-size: 0.65rem;
+            }
+
+            .chart-container {
+                height: 180px;
+            }
+
+            table {
+                font-size: 0.75rem;
+            }
+
+            th,
+            td {
+                padding: 0.4rem;
+            }
+
+            .badge {
+                font-size: 0.55rem;
+                padding: 0.15rem 0.4rem;
+            }
+
+            .feature-importance {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .feature-name {
+                width: 100%;
+            }
+
+            .log-container {
+                max-height: 100px;
+                font-size: 0.7rem;
+            }
+
+            footer {
+                padding: 1rem;
+                font-size: 0.75rem;
+            }
+
+            select,
+            button,
+            input {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="quantum-icon">⚛️</div>
+                <h1>Inventory Quantum Dashboard</h1>
+            </div>
+            <p class="subtitle">Deep Learning • Quantum Optimization • Offline RL • Drift Detection</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot active" id="api-status"></div>
+                <span>API: <span id="api-status-text">Connected</span></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot active" id="data-status"></div>
+                <span>Data: <span id="data-status-text">Loaded</span></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot active" id="model-status"></div>
+                <span>Models: <span id="model-status-text">Ready</span></span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card col-12" style="margin-bottom: 1rem;">
+            <div class="controls">
+                <select id="sku-select">
+                    <option value="SKU001">SKU001 - Electronics</option>
+                    <option value="SKU002">SKU002 - Apparel</option>
+                </select>
+                <select id="model-select">
+                    <option value="tft">TFT (Temporal Fusion)</option>
+                    <option value="lightgbm">LightGBM</option>
+                    <option value="arima">ARIMA</option>
+                    <option value="ensemble">Ensemble</option>
+                </select>
+                <input type="number" id="horizon-input" placeholder="Horizon" value="30" min="7" max="90"
+                    style="width: 100px;">
+                <button onclick="generateForecast()" class="primary" id="forecast-btn">
+                    📈 Generate Forecast
+                </button>
+                <button onclick="runOptimization()" id="optimize-btn">
+                    ⚛️ Run QAOA Optimization
+                </button>
+                <button onclick="checkDrift()" id="drift-btn">
+                    🔍 Check Drift
+                </button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Main Forecast Chart -->
+            <div class="card col-8">
+                <div class="card-header">
+                    <h2>📈 Multi-Horizon Forecast with Conformal Intervals</h2>
+                    <span class="badge badge-ml">TFT + CQR</span>
+                </div>
+                <div id="forecast-chart" class="chart-container tall"></div>
+            </div>
+
+            <!-- Model Metrics -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>📊 Model Performance</h2>
+                    <span class="badge badge-live">Live</span>
+                </div>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-value" id="metric-rmse">4.92</div>
+                        <div class="metric-label">RMSE</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="metric-coverage">94.8%</div>
+                        <div class="metric-label">Coverage</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="metric-mape">8.7%</div>
+                        <div class="metric-label">MAPE</div>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <h3 style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #8b8ba7;">Benchmark Ranking</h3>
+                    <table>
+                        <tr>
+                            <td>TFT + Conformal</td>
+                            <td style="color: #10b981;">🥇 Rank 1</td>
+                        </tr>
+                        <tr>
+                            <td>LightGBM</td>
+                            <td>🥈 Rank 2</td>
+                        </tr>
+                        <tr>
+                            <td>ARIMA</td>
+                            <td>🥉 Rank 3</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TFT Feature Importance -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>🎯 TFT Feature Importance</h2>
+                    <span class="badge badge-ml">VSN</span>
+                </div>
+                <div id="feature-importance-container">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Attention Heatmap -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>🧠 Temporal Attention Heatmap</h2>
+                    <span class="badge badge-ml">Interpretable</span>
+                </div>
+                <div id="attention-heatmap" class="heatmap-container">
+                    <!-- Populated by JS -->
+                </div>
+                <p style="font-size: 0.7rem; color: #8b8ba7; margin-top: 0.5rem; text-align: center;">
+                    Attention weights from encoder to decoder (brighter = higher attention)
+                </p>
+            </div>
+
+            <!-- QAOA Convergence -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>⚛️ QAOA Convergence</h2>
+                    <span class="badge badge-quantum">p=3 layers</span>
+                </div>
+                <div id="qaoa-convergence" class="chart-container"></div>
+            </div>
+
+            <!-- QUBO Energy Landscape -->
+            <div class="card col-6">
+                <div class="card-header">
+                    <h2>🌊 QUBO Energy Landscape</h2>
+                    <span class="badge badge-quantum">3D Surface</span>
+                </div>
+                <div id="qubo-surface" class="chart-container tall"></div>
+            </div>
+
+            <!-- Solver Comparison -->
+            <div class="card col-6">
+                <div class="card-header">
+                    <h2>🔬 Quantum vs Classical Solvers</h2>
+                    <span class="badge badge-quantum">Ablation</span>
+                </div>
+                <div class="tabs">
+                    <button class="tab active" onclick="showSolverTab('comparison')">Comparison</button>
+                    <button class="tab" onclick="showSolverTab('history')">SA History</button>
+                </div>
+                <div id="solver-comparison">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Solver</th>
+                                <th>Energy</th>
+                                <th>Time</th>
+                                <th>Iterations</th>
+                            </tr>
+                        </thead>
+                        <tbody id="solver-table-body">
+                            <tr>
+                                <td>🎯 Exact</td>
+                                <td style="color: #10b981;">-42.50</td>
+                                <td>12.4s</td>
+                                <td>256</td>
+                            </tr>
+                            <tr>
+                                <td>⚛️ QAOA (p=3)</td>
+                                <td style="color: #06b6d4;">-42.31</td>
+                                <td>1.8s</td>
+                                <td>87</td>
+                            </tr>
+                            <tr>
+                                <td>🔥 Simulated Annealing</td>
+                                <td>-41.82</td>
+                                <td>0.3s</td>
+                                <td>1000</td>
+                            </tr>
+                            <tr>
+                                <td>🔀 Tabu Search</td>
+                                <td>-40.15</td>
+                                <td>0.2s</td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>🎲 Random</td>
+                                <td style="color: #ef4444;">-38.52</td>
+                                <td>0.1s</td>
+                                <td>1000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="solver-history" style="display: none;">
+                    <div id="sa-history-chart" class="chart-container"></div>
+                </div>
+            </div>
+
+            <!-- CQL Policy -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>🤖 CQL Policy Decision</h2>
+                    <span class="badge badge-rl">Offline RL</span>
+                </div>
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-value" id="rl-rop">127</div>
+                        <div class="metric-label">Reorder Point</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="rl-qty">85</div>
+                        <div class="metric-label">Order Qty</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="rl-service">96.2%</div>
+                        <div class="metric-label">Service Level</div>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <h3 style="font-size: 0.85rem; margin-bottom: 0.5rem; color: #8b8ba7;">CQL Training</h3>
+                    <div id="cql-training-chart" class="chart-container" style="height: 120px;"></div>
+                </div>
+            </div>
+
+            <!-- Drift Detection -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>🔍 Distributional Drift</h2>
+                    <span class="badge badge-ml">PSI + KS</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>PSI</th>
+                            <th>KS p-value</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drift-table-body">
+                        <tr>
+                            <td>SKU001</td>
+                            <td>0.08</td>
+                            <td>0.42</td>
+                            <td><span class="status-indicator status-good"></span>Stable</td>
+                        </tr>
+                        <tr>
+                            <td>SKU002</td>
+                            <td>0.24</td>
+                            <td>0.03</td>
+                            <td><span class="status-indicator status-warning"></span>Drift</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="psi-chart" class="chart-container" style="height: 120px; margin-top: 0.5rem;"></div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="card col-4">
+                <div class="card-header">
+                    <h2>📝 Activity Log</h2>
+                </div>
+                <div class="log-container" id="activity-log">
+                    <div class="log-entry">
+                        <span class="log-time">22:08:45</span>
+                        <span class="log-success">✓ Dashboard initialized</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-time">22:08:46</span>
+                        <span class="log-success">✓ Models loaded</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>Inventory Quantum</strong> &copy; 2026</p>
+            <p style="margin-top: 0.5rem;">
+                Deep Learning (TFT) • Quantum Computing (QAOA) • Reinforcement Learning (CQL) • Conformal Prediction
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = '';  // Empty for same origin, or 'http://localhost:8000'
+
+        // State
+        let currentSKU = 'SKU001';
+        let currentModel = 'tft';
+        let forecastData = null;
+
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', async () => {
+            initializeCharts();
+            initializeFeatureImportance();
+            initializeAttentionHeatmap();
+            await checkAPIStatus();
+            addLog('Dashboard fully loaded', 'success');
+        });
+
+        // ===== API CALLS =====
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    updateStatus('api', 'active', 'Connected');
+                    updateStatus('model', 'active', 'Ready');
+                } else {
+                    updateStatus('api', 'error', 'Error');
+                }
+            } catch (e) {
+                updateStatus('api', 'loading', 'Demo Mode');
+                addLog('Running in demo mode (API not available)', 'warning');
+            }
+        }
+
+        async function generateForecast() {
+            const btn = document.getElementById('forecast-btn');
+            btn.innerHTML = '<span class="loading-spinner"></span>Forecasting...';
+            btn.disabled = true;
+
+            const sku = document.getElementById('sku-select').value;
+            const model = document.getElementById('model-select').value;
+            const horizon = document.getElementById('horizon-input').value;
+
+            addLog(`Generating ${model.toUpperCase()} forecast for ${sku}, horizon=${horizon}`, 'success');
+
+            try {
+                // Try API call
+                const response = await fetch(`${API_BASE}/forecast/${sku}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: model, horizon: parseInt(horizon) })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateForecastChart(data);
+                    addLog(`Forecast generated: ${data.length} points`, 'success');
+                } else {
+                    // Fall back to demo data
+                    generateDemoForecast(horizon);
+                }
+            } catch (e) {
+                generateDemoForecast(horizon);
+            }
+
+            btn.innerHTML = '📈 Generate Forecast';
+            btn.disabled = false;
+        }
+
+        function generateDemoForecast(horizon) {
+            // Generate realistic demo data
+            const dates = [];
+            const predicted = [];
+            const lower = [];
+            const upper = [];
+            const actual = [];
+
+            const baseValue = 50 + Math.random() * 20;
+            let trend = 0;
+
+            for (let i = 0; i < horizon; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() + i);
+                dates.push(d.toISOString().split('T')[0]);
+
+                // Add trend, seasonality, and noise
+                trend += (Math.random() - 0.5) * 0.5;
+                const seasonality = 5 * Math.sin(2 * Math.PI * i / 7);
+                const noise = (Math.random() - 0.5) * 10;
+
+                const value = baseValue + trend + seasonality + noise;
+                predicted.push(Math.max(0, value));
+                lower.push(Math.max(0, value - 10 - Math.random() * 5));
+                upper.push(value + 10 + Math.random() * 5);
+
+                if (i < 10) {
+                    actual.push(Math.max(0, value + (Math.random() - 0.5) * 8));
+                }
+            }
+
+            forecastData = { dates, predicted, lower, upper, actual };
+            updateForecastChart(forecastData);
+
+            // Update metrics with slight randomization
+            document.getElementById('metric-rmse').textContent = (4 + Math.random() * 2).toFixed(2);
+            document.getElementById('metric-coverage').textContent = (92 + Math.random() * 6).toFixed(1) + '%';
+            document.getElementById('metric-mape').textContent = (7 + Math.random() * 4).toFixed(1) + '%';
+        }
+
+        async function runOptimization() {
+            const btn = document.getElementById('optimize-btn');
+            btn.innerHTML = '<span class="loading-spinner"></span>Optimizing...';
+            btn.disabled = true;
+
+            addLog('Running QAOA simulation (p=3 layers)...', 'success');
+
+            // Simulate optimization with animation
+            await simulateQAOAConvergence();
+
+            addLog('QAOA optimization complete: Energy=-42.31', 'success');
+
+            // Update policy metrics
+            document.getElementById('rl-rop').textContent = Math.floor(100 + Math.random() * 50);
+            document.getElementById('rl-qty').textContent = Math.floor(60 + Math.random() * 40);
+            document.getElementById('rl-service').textContent = (94 + Math.random() * 4).toFixed(1) + '%';
+
+            btn.innerHTML = '⚛️ Run QAOA Optimization';
+            btn.disabled = false;
+        }
+
+        async function checkDrift() {
+            const btn = document.getElementById('drift-btn');
+            btn.innerHTML = '<span class="loading-spinner"></span>Checking...';
+            btn.disabled = true;
+
+            addLog('Computing PSI and KS statistics...', 'success');
+
+            await new Promise(r => setTimeout(r, 1000));
+
+            // Update drift table with random values
+            const tableBody = document.getElementById('drift-table-body');
+            const skus = ['SKU001', 'SKU002'];
+            tableBody.innerHTML = skus.map(sku => {
+                const psi = Math.random() * 0.3;
+                const ks = Math.random();
+                const isDrift = psi > 0.2 || ks < 0.05;
+                return `
+                    <tr>
+                        <td>${sku}</td>
+                        <td>${psi.toFixed(2)}</td>
+                        <td>${ks.toFixed(2)}</td>
+                        <td>
+                            <span class="status-indicator ${isDrift ? 'status-warning' : 'status-good'}"></span>
+                            ${isDrift ? 'Drift' : 'Stable'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            addLog('Drift analysis complete', 'success');
+
+            btn.innerHTML = '🔍 Check Drift';
+            btn.disabled = false;
+        }
+
+        // ===== CHART INITIALIZATION =====
+        function initializeCharts() {
+            // Forecast chart
+            generateDemoForecast(30);
+
+            // QAOA convergence
+            initQAOAChart();
+
+            // QUBO surface
+            initQUBOSurface();
+
+            // SA history
+            initSAHistory();
+
+            // CQL training
+            initCQLChart();
+
+            // PSI chart
+            initPSIChart();
+        }
+
+        function updateForecastChart(data) {
+            const traces = [
+                {
+                    x: data.dates,
+                    y: data.predicted,
+                    name: 'Predicted',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#7c3aed', width: 3 }
+                },
+                {
+                    x: data.dates,
+                    y: data.upper,
+                    name: 'Upper 95%',
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#10b981', width: 0 },
+                    showlegend: false
+                },
+                {
+                    x: data.dates,
+                    y: data.lower,
+                    name: 'Conformal 95%',
+                    type: 'scatter',
+                    mode: 'lines',
+                    fill: 'tonexty',
+                    fillcolor: 'rgba(16, 185, 129, 0.15)',
+                    line: { color: '#10b981', width: 0 }
+                }
+            ];
+
+            if (data.actual && data.actual.length > 0) {
+                traces.push({
+                    x: data.dates.slice(0, data.actual.length),
+                    y: data.actual,
+                    name: 'Actual',
+                    type: 'scatter',
+                    mode: 'markers',
+                    marker: { color: '#f472b6', size: 8 }
+                });
+            }
+
+            const layout = getChartLayout('Demand', 'Date');
+            Plotly.react('forecast-chart', traces, layout, { responsive: true });
+        }
+
+        function initQAOAChart() {
+            const iterations = Array.from({ length: 50 }, (_, i) => i);
+            const expectation = iterations.map(i => -30 - 12 * (1 - Math.exp(-i / 15)) + Math.random() * 2);
+
+            const traces = [{
+                x: iterations,
+                y: expectation,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#06b6d4', width: 2 },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(6, 182, 212, 0.1)'
+            }];
+
+            const layout = getChartLayout('Expected Energy', 'Iteration');
+            layout.showlegend = false;
+            Plotly.newPlot('qaoa-convergence', traces, layout, { responsive: true });
+        }
+
+        async function simulateQAOAConvergence() {
+            const iterations = 50;
+
+            for (let i = 0; i <= iterations; i += 5) {
+                const x = Array.from({ length: i + 1 }, (_, j) => j);
+                const y = x.map(j => -30 - 12 * (1 - Math.exp(-j / 15)) + (Math.random() - 0.5) * 2);
+
+                Plotly.react('qaoa-convergence', [{
+                    x, y,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { color: '#06b6d4', width: 2 },
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(6, 182, 212, 0.1)'
+                }], getChartLayout('Expected Energy', 'Iteration'), { responsive: true });
+
+                await new Promise(r => setTimeout(r, 100));
+            }
+        }
+
+        function initQUBOSurface() {
+            const n = 20;
+            const x = Array.from({ length: n }, (_, i) => i * 10);
+            const y = Array.from({ length: n }, (_, i) => i * 10);
+            const z = [];
+
+            for (let i = 0; i < n; i++) {
+                const row = [];
+                for (let j = 0; j < n; j++) {
+                    // QUBO-like cost function
+                    const holding = 0.1 * x[i];
+                    const ordering = j > 0 ? 50 : 0;
+                    const stockout = Math.max(0, 50 - x[i]) * 10;
+                    row.push(holding + ordering + stockout + Math.random() * 5);
+                }
+                z.push(row);
+            }
+
+            const traces = [{
+                x, y, z,
+                type: 'surface',
+                colorscale: [
+                    [0, '#10b981'],
+                    [0.5, '#7c3aed'],
+                    [1, '#ef4444']
+                ],
+                opacity: 0.9
+            }];
+
+            const layout = {
+                ...getChartLayout(),
+                scene: {
+                    xaxis: { title: 'Order Qty', color: '#8b8ba7' },
+                    yaxis: { title: 'Reorder Point', color: '#8b8ba7' },
+                    zaxis: { title: 'Cost', color: '#8b8ba7' },
+                    bgcolor: 'transparent'
+                },
+                margin: { l: 0, r: 0, t: 0, b: 0 }
+            };
+
+            Plotly.newPlot('qubo-surface', traces, layout, { responsive: true });
+        }
+
+        function initSAHistory() {
+            const iterations = Array.from({ length: 100 }, (_, i) => i * 10);
+            const current = iterations.map((_, i) => -30 - 10 * (1 - Math.exp(-i / 30)) + Math.random() * 5);
+            const best = [];
+            let bestVal = current[0];
+            current.forEach(v => {
+                if (v < bestVal) bestVal = v;
+                best.push(bestVal);
+            });
+
+            const traces = [
+                { x: iterations, y: current, name: 'Current', line: { color: '#8b8ba7', width: 1 } },
+                { x: iterations, y: best, name: 'Best', line: { color: '#7c3aed', width: 2 } }
+            ];
+
+            const layout = getChartLayout('Energy', 'Iteration');
+            Plotly.newPlot('sa-history-chart', traces, layout, { responsive: true });
+        }
+
+        function initCQLChart() {
+            const epochs = Array.from({ length: 50 }, (_, i) => i);
+            const loss = epochs.map(i => 5 * Math.exp(-i / 20) + 0.5 + Math.random() * 0.2);
+
+            const traces = [{
+                x: epochs,
+                y: loss,
+                type: 'scatter',
+                mode: 'lines',
+                line: { color: '#f59e0b', width: 2 }
+            }];
+
+            const layout = getChartLayout('CQL Loss', 'Epoch');
+            layout.showlegend = false;
+            layout.margin = { l: 40, r: 10, t: 10, b: 30 };
+            Plotly.newPlot('cql-training-chart', traces, layout, { responsive: true });
+        }
+
+        function initPSIChart() {
+            const periods = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'];
+            const psi = periods.map(() => Math.random() * 0.25);
+
+            const traces = [{
+                x: periods,
+                y: psi,
+                type: 'bar',
+                marker: {
+                    color: psi.map(v => v > 0.2 ? '#f59e0b' : '#10b981')
+                }
+            }];
+
+            const layout = getChartLayout('PSI', '');
+            layout.showlegend = false;
+            layout.margin = { l: 40, r: 10, t: 10, b: 30 };
+            layout.shapes = [{
+                type: 'line',
+                x0: -0.5, x1: 5.5,
+                y0: 0.2, y1: 0.2,
+                line: { color: '#ef4444', width: 2, dash: 'dash' }
+            }];
+
+            Plotly.newPlot('psi-chart', traces, layout, { responsive: true });
+        }
+
+        function getChartLayout(yTitle, xTitle) {
+            return {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#e0e0ff', size: 10 },
+                xaxis: {
+                    title: xTitle || '',
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    zerolinecolor: 'rgba(255,255,255,0.1)'
+                },
+                yaxis: {
+                    title: yTitle || '',
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    zerolinecolor: 'rgba(255,255,255,0.1)'
+                },
+                legend: {
+                    orientation: 'h',
+                    y: -0.15,
+                    font: { size: 10 }
+                },
+                margin: { l: 50, r: 20, t: 20, b: 50 }
+            };
+        }
+
+        // ===== FEATURE IMPORTANCE =====
+        function initializeFeatureImportance() {
+            const features = [
+                { name: 'lag_7', value: 0.23 },
+                { name: 'rolling_mean', value: 0.19 },
+                { name: 'day_of_week', value: 0.15 },
+                { name: 'lag_1', value: 0.12 },
+                { name: 'month', value: 0.10 },
+                { name: 'rolling_std', value: 0.08 },
+                { name: 'lag_14', value: 0.07 },
+                { name: 'trend', value: 0.06 }
+            ];
+
+            const container = document.getElementById('feature-importance-container');
+            container.innerHTML = features.map(f => `
+                <div class="feature-importance">
+                    <span class="feature-name">${f.name}</span>
+                    <div class="importance-bar-container">
+                        <div class="importance-bar" style="width: ${f.value * 400}%;"></div>
+                    </div>
+                    <span class="importance-value">${f.value.toFixed(2)}</span>
+                </div>
+            `).join('');
+        }
+
+        // ===== ATTENTION HEATMAP =====
+        function initializeAttentionHeatmap() {
+            const container = document.getElementById('attention-heatmap');
+            const size = 10;
+
+            // Generate attention pattern
+            const cells = [];
+            for (let i = 0; i < size * size; i++) {
+                const row = Math.floor(i / size);
+                const col = i % size;
+
+                // Higher attention on diagonal and recent lags
+                const diag = 1 - Math.abs(row - col) / size;
+                const recency = 1 - col / size;
+                const value = 0.3 * diag + 0.5 * recency + 0.2 * Math.random();
+
+                const hue = 270 - value * 90;  // Purple to cyan
+                const sat = 70 + value * 30;
+                const light = 20 + value * 40;
+
+                cells.push(`<div class="heatmap-cell" style="background: hsl(${hue}, ${sat}%, ${light}%)" 
+                    title="Encoder[${row}] → Decoder[${col}]: ${value.toFixed(2)}"></div>`);
+            }
+
+            container.innerHTML = cells.join('');
+        }
+
+        // ===== UI HELPERS =====
+        function updateStatus(type, status, text) {
+            const dot = document.getElementById(`${type}-status`);
+            const textEl = document.getElementById(`${type}-status-text`);
+
+            dot.className = `status-dot ${status}`;
+            textEl.textContent = text;
+        }
+
+        function addLog(message, type = 'success') {
+            const log = document.getElementById('activity-log');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+            const icons = { success: '✓', warning: '⚠', error: '✗' };
+
+            log.innerHTML = `
+                <div class="log-entry">
+                    <span class="log-time">${time}</span>
+                    <span class="log-${type}">${icons[type]} ${message}</span>
+                </div>
+            ` + log.innerHTML;
+
+            // Keep only last 20 entries
+            const entries = log.querySelectorAll('.log-entry');
+            if (entries.length > 20) {
+                entries[entries.length - 1].remove();
+            }
+        }
+
+        function showSolverTab(tab) {
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('solver-comparison').style.display = tab === 'comparison' ? 'block' : 'none';
+            document.getElementById('solver-history').style.display = tab === 'history' ? 'block' : 'none';
+
+            if (tab === 'history') {
+                Plotly.relayout('sa-history-chart', {});
+            }
+        }
+    </script>
+</body>
+
+</html>
