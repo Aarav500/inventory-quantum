@@ -73,20 +73,20 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Inventory Quantum" \
             --parameters "commands=[
-              \"set -euo pipefail\",
+              \"set -eu\",
               \"export PATH=\$PATH:/usr/local/bin\",
               \"export AWS_REGION=${AWS_REGION_VAL}\",
 
               \"echo '=== Checking AWS CLI ==='\",
-              \"if ! command -v aws &>/dev/null; then\",
-              \"  if command -v apt-get &>/dev/null; then sudo apt-get update -qq && sudo apt-get install -y unzip curl; curl -s 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o /tmp/awscliv2.zip; unzip -q /tmp/awscliv2.zip -d /tmp; sudo /tmp/aws/install --update; rm -rf /tmp/awscliv2.zip /tmp/aws;\",
+              \"if ! command -v aws >/dev/null 2>&1; then\",
+              \"  if command -v apt-get >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y unzip curl; curl -s 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o /tmp/awscliv2.zip; unzip -q /tmp/awscliv2.zip -d /tmp; sudo /tmp/aws/install --update; rm -rf /tmp/awscliv2.zip /tmp/aws;\",
               \"  else sudo yum install -y awscli; fi;\",
               \"fi\",
               \"aws --version\",
 
               \"echo '=== Checking Docker ==='\",
-              \"if ! command -v docker &>/dev/null; then\",
-              \"  if command -v apt-get &>/dev/null; then sudo apt-get update -qq && sudo apt-get install -y docker.io && sudo service docker start && sudo usermod -aG docker ubuntu;\",
+              \"if ! command -v docker >/dev/null 2>&1; then\",
+              \"  if command -v apt-get >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y docker.io && sudo service docker start && sudo usermod -aG docker ubuntu;\",
               \"  else sudo yum update -y && sudo yum install -y docker && sudo service docker start && sudo usermod -aG docker ec2-user; fi;\",
               \"  sudo systemctl enable docker;\",
               \"fi\",
@@ -107,7 +107,7 @@ jobs:
               \"sudo docker run -d --name inventory-quantum --restart unless-stopped -p 8000:8000 -e AWS_REGION=${AWS_REGION_VAL} -e S3_BUCKET=${S3_BUCKET} inventory-quantum:latest\",
 
               \"echo '=== Wait for /health (60 s max) ==='\",
-              \"for i in \\$(seq 1 12); do CODE=\\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/health 2>/dev/null || echo 000); if [ \\\"\\$CODE\\\" = '200' ]; then echo \\\"PASS: /health returned 200 on attempt \\$i\\\"; break; fi; echo \\\"Attempt \\$i/12: HTTP \\$CODE – retrying in 5 s...\\\"; sleep 5; if [ \\$i -eq 12 ]; then echo 'FAIL: /health never returned 200 after 60 s'; sudo docker logs inventory-quantum 2>&1 | tail -50; exit 1; fi; done\",
+              \"for i in \$(seq 1 12); do CODE=\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/health 2>/dev/null || echo 000); if [ \\\"\$CODE\\\" = '200' ]; then echo \\\"PASS: /health returned 200 on attempt \$i\\\"; break; fi; echo \\\"Attempt \$i/12: HTTP \$CODE - retrying in 5 s...\\\"; sleep 5; if [ \$i -eq 12 ]; then echo 'FAIL: /health never returned 200 after 60 s'; sudo docker logs inventory-quantum 2>&1 | tail -50; exit 1; fi; done\",
 
               \"echo '=== Container status ==='\",
               \"sudo docker ps\"
@@ -171,17 +171,17 @@ jobs:
               \"echo '--- Container status ---'\",
               \"sudo docker inspect --format '{{.State.Status}} (health: {{.State.Health.Status}})' inventory-quantum\",
               \"echo '--- GET /health ---'\",
-              \"HEALTH=\\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/health)\",
-              \"echo \\\"HTTP status: \\$HEALTH\\\"\",
-              \"[ \\\"\\$HEALTH\\\" = '200' ] || { echo 'FAIL: /health did not return 200'; exit 1; }\",
+              \"HEALTH=\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/health)\",
+              \"echo \\\"HTTP status: \$HEALTH\\\"\",
+              \"[ \\\"\$HEALTH\\\" = '200' ] || { echo 'FAIL: /health did not return 200'; exit 1; }\",
               \"echo '--- HEAD /health ---'\",
-              \"HEAD_STATUS=\\$(curl -sI -o /dev/null -w '%{http_code}' http://localhost:8000/health)\",
-              \"echo \\\"HTTP status: \\$HEAD_STATUS\\\"\",
-              \"[ \\\"\\$HEAD_STATUS\\\" = '200' ] || { echo 'FAIL: HEAD /health did not return 200'; exit 1; }\",
+              \"HEAD_STATUS=\$(curl -sI -o /dev/null -w '%{http_code}' http://localhost:8000/health)\",
+              \"echo \\\"HTTP status: \$HEAD_STATUS\\\"\",
+              \"[ \\\"\$HEAD_STATUS\\\" = '200' ] || { echo 'FAIL: HEAD /health did not return 200'; exit 1; }\",
               \"echo '--- GET / (root) ---'\",
-              \"ROOT=\\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/)\",
-              \"echo \\\"HTTP status: \\$ROOT\\\"\",
-              \"[ \\\"\\$ROOT\\\" = '200' ] || { echo 'FAIL: / did not return 200'; exit 1; }\",
+              \"ROOT=\$(curl -sf -o /dev/null -w '%{http_code}' http://localhost:8000/)\",
+              \"echo \\\"HTTP status: \$ROOT\\\"\",
+              \"[ \\\"\$ROOT\\\" = '200' ] || { echo 'FAIL: / did not return 200'; exit 1; }\",
               \"echo '--- Port 8000 listener ---'\",
               \"ss -tlnp | grep ':8000' || { echo 'FAIL: nothing listening on 8000'; exit 1; }\",
               \"echo '✅ All post-deploy checks passed'\"
