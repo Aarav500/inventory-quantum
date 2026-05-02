@@ -31,37 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Health and diagnostic endpoints must be registered before app.mount() so that
-# Starlette's route-match loop finds them before the StaticFiles Mount, which
-# returns 405 for HEAD on paths it does not own and would short-circuit the loop.
-from fastapi.responses import FileResponse
-
-
-@app.api_route("/health", methods=["GET", "HEAD"])
-async def health_check():
-    return {"status": "healthy", "version": settings.api_version}
-
-
-@app.get("/debug/diagnose")
-async def diagnose_paths():
-    import os
-    current_file = Path(__file__).resolve()
-    static_path_absolute = current_file.parent / "static"
-    cwd = os.getcwd()
-    ls_static = []
-    if static_path_absolute.exists():
-        ls_static = os.listdir(str(static_path_absolute))
-
-    return {
-        "cwd": cwd,
-        "__file__": str(current_file),
-        "static_path_absolute": str(static_path_absolute),
-        "static_exists": static_path_absolute.exists(),
-        "static_files": ls_static,
-        "root_path_env": os.getenv("ROOT_PATH"),
-    }
-
-
 # Include routers
 app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(forecast.router, prefix="/forecast", tags=["Forecasting"])
@@ -92,20 +61,58 @@ app.include_router(rebalancing.router, prefix="/rebalancing", tags=["Rebalancing
 app.include_router(scenario.router, prefix="/scenario", tags=["Scenario Simulator"])
 app.include_router(supplier.router, prefix="/supplier", tags=["Supplier Scorecard"])
 
-# Mount static files — must come after /health and /debug routes
+
+
+# Mount static files
 static_path = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_path), html=True), name="static")
 
+# Serve HTML pages at root
+from fastapi.responses import FileResponse
 
 @app.get("/")
 async def root():
     return FileResponse(static_path / "index.html")
 
-
 @app.get("/{page}.html")
 async def serve_html(page: str):
+    """Serve specific HTML pages from static directory."""
     file_path = static_path / f"{page}.html"
     if file_path.exists():
         return FileResponse(file_path)
     return {"detail": "Not Found", "version": settings.api_version}, 404
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "version": settings.api_version}
+
+@app.get("/debug/diagnose")
+async def diagnose_paths():
+    """Diagnose file system paths."""
+    import os
+    current_file = Path(__file__).resolve()
+    static_path_absolute = current_file.parent / "static"
+    cwd = os.getcwd()
+    ls_static = []
+    if static_path_absolute.exists():
+        ls_static = os.listdir(str(static_path_absolute))
+    
+    return {
+        "cwd": cwd,
+        "__file__": str(current_file),
+        "static_path_absolute": str(static_path_absolute),
+        "static_exists": static_path_absolute.exists(),
+        "static_files": ls_static,
+        "root_path_env": os.getenv("ROOT_PATH"),
+    }
+
+
+@app.get("/")
+async def root():
+    """Serve dashboard at root."""
+    from fastapi.responses import FileResponse
+    index_path = Path(__file__).resolve().parent / "static" / "index.html"
+    return FileResponse(index_path, media_type="text/html")
 

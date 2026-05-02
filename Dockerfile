@@ -19,10 +19,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# curl is required by the HEALTHCHECK below
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy only the installed packages
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
@@ -33,8 +29,8 @@ COPY app ./app
 # Expose port
 EXPOSE 8000
 
-# Health check — start_period gives ML libs time to load before checks begin
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application
