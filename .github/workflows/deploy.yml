@@ -235,7 +235,7 @@ jobs:
           echo "========================================"
           echo "🎉 DEPLOYMENT COMPLETE!"
           echo "========================================"
-          echo "🌐 Domain: https://inventory.aarav-shah.com/static/index.html"
+          echo "🌐 Domain: https://inventory.aarav-shah.com/"
           echo "📊 Direct: http://$PUBLIC_IP:8000/static/index.html"
           echo "🔌 API:    https://inventory.aarav-shah.com/"
           echo "========================================"
