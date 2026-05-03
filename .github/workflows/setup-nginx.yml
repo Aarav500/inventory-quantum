@@ -309,12 +309,19 @@ jobs:
           fi
           
           echo "🧪 Testing HTTPS endpoint..."
-          RESPONSE=$(curl -sI "https://$DOMAIN/health" 2>/dev/null | head -1)
+          HEADERS=$(curl -sI "https://$DOMAIN/health" 2>/dev/null || true)
+          RESPONSE=$(echo "$HEADERS" | head -1)
           echo "Response: $RESPONSE"
           if echo "$RESPONSE" | grep -q "200"; then
             echo "✅ HTTPS endpoint healthy!"
+          elif echo "$RESPONSE" | grep -q "301\|302" && echo "$HEADERS" | grep -qi "^Location: https://$DOMAIN/health"; then
+            echo "❌ HTTPS endpoint is redirecting to itself through Cloudflare."
+            echo "Origin HTTPS is healthy, but Cloudflare is likely using SSL/TLS mode: Flexible."
+            echo "Set Cloudflare SSL/TLS > Overview > Encryption mode to Full (strict), then rerun this workflow."
+            exit 1
           else
             echo "❌ HTTPS test failed"
+            echo "$HEADERS"
             exit 1
           fi
 
