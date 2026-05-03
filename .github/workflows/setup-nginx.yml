@@ -7,9 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       domain:
-        description: 'Primary domain (e.g., aarav-shah.com)'
+        description: 'Primary domain (e.g., inventory.aarav-shah.com)'
         required: true
-        default: 'aarav-shah.com'
+        default: 'inventory.aarav-shah.com'
+      include_www:
+        description: 'Also request/configure www.<domain>'
+        required: false
+        default: 'false'
       skip_ssl:
         description: 'Skip SSL setup (for testing)'
         required: false
@@ -30,11 +34,36 @@ jobs:
       - name: Setup Nginx and SSL on EC2
         env:
           DOMAIN: ${{ github.event.inputs.domain }}
+          INCLUDE_WWW: ${{ github.event.inputs.include_www }}
           SKIP_SSL: ${{ github.event.inputs.skip_ssl }}
         run: |
           echo "🌐 Setting up Nginx for $DOMAIN..."
 
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+
+          echo "=== Opening EC2 security group ports 80/443 ==="
+          SECURITY_GROUP_IDS=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query "Reservations[0].Instances[0].SecurityGroups[].GroupId" \
+            --output text)
+
+          for SG_ID in $SECURITY_GROUP_IDS; do
+            aws ec2 authorize-security-group-ingress \
+              --group-id "$SG_ID" \
+              --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges='[{CidrIp=0.0.0.0/0,Description="HTTP for nginx"}]' \
+              2>/dev/null || true
+            aws ec2 authorize-security-group-ingress \
+              --group-id "$SG_ID" \
+              --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges='[{CidrIp=0.0.0.0/0,Description="HTTPS for nginx"}]' \
+              2>/dev/null || true
+          done
+
+          SERVER_NAMES="$DOMAIN"
+          CERTBOT_DOMAINS="-d ${DOMAIN}"
+          if [ "$INCLUDE_WWW" = "true" ]; then
+            SERVER_NAMES="$SERVER_NAMES www.$DOMAIN"
+            CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d www.${DOMAIN}"
+          fi
 
           # Build nginx config as base64 using printf so all lines stay
           # indented within the YAML block scalar (heredoc content at col 0
@@ -43,7 +72,16 @@ jobs:
           NGINX_B64=$(printf '%s\n' \
             'server {' \
             '    listen 80;' \
-            "    server_name ${DOMAIN} www.${DOMAIN};" \
+            "    server_name ${SERVER_NAMES};" \
+            '' \
+            '    location / {' \
+            '        proxy_pass http://127.0.0.1:8000;' \
+            '        proxy_http_version 1.1;' \
+            '        proxy_set_header Host $host;' \
+            '        proxy_set_header X-Real-IP $remote_addr;' \
+            '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+            '        proxy_set_header X-Forwarded-Proto $scheme;' \
+            '    }' \
             '' \
             '    location /inventory-forecasting/ {' \
             '        proxy_pass http://127.0.0.1:8000/;' \
@@ -56,11 +94,6 @@ jobs:
             '' \
             '    location /inventory-forecasting {' \
             '        return 301 /inventory-forecasting/;' \
-            '    }' \
-            '' \
-            '    location / {' \
-            '        return 200 "Inventory Quantum API. Visit /inventory-forecasting/ for the dashboard.";' \
-            '        add_header Content-Type text/plain;' \
             '    }' \
             '}' | base64 -w0)
 
@@ -84,7 +117,7 @@ jobs:
 
               \"echo '=== SSL Setup ==='\",
               \"if [ '${SKIP_SSL}' != 'true' ]; then\",
-              \"  sudo certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} --non-interactive --agree-tos -m admin@${DOMAIN} --redirect || echo 'SSL setup failed - check DNS'\",
+              \"  sudo certbot --nginx ${CERTBOT_DOMAINS} --non-interactive --agree-tos -m admin@${DOMAIN} --redirect\",
               \"else\",
               \"  echo 'Skipping SSL (manual run later)'\",
               \"fi\",
@@ -92,6 +125,8 @@ jobs:
               \"echo '=== Verifying ==='\",
               \"sudo nginx -t\",
               \"sudo systemctl status nginx --no-pager\",
+              \"ss -tlnp | grep -E ':(80|443) '\",
+              \"curl -sfI http://localhost/health\",
               \"echo 'Nginx setup complete!'\"
             ]" \
             --timeout-seconds 300 \
@@ -131,17 +166,36 @@ jobs:
             sleep 10
           done
 
+      - name: Test Direct Origin
+        env:
+          DOMAIN: ${{ github.event.inputs.domain }}
+          SKIP_SSL: ${{ github.event.inputs.skip_ssl }}
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+
+          echo "Origin public IP: $PUBLIC_IP"
+          curl -sfI --resolve "$DOMAIN:80:$PUBLIC_IP" "http://$DOMAIN/health"
+
+          if [ "$SKIP_SSL" != "true" ]; then
+            curl -sfI --resolve "$DOMAIN:443:$PUBLIC_IP" "https://$DOMAIN/health"
+          fi
+
       - name: Test HTTP Redirect
         env:
           DOMAIN: ${{ github.event.inputs.domain }}
         run: |
           echo "🧪 Testing HTTP → HTTPS redirect..."
-          RESPONSE=$(curl -sI "http://$DOMAIN/inventory-forecasting/" 2>/dev/null | head -1)
+          RESPONSE=$(curl -sI "http://$DOMAIN/health" 2>/dev/null | head -1)
           echo "Response: $RESPONSE"
           if echo "$RESPONSE" | grep -q "301\|302\|200"; then
             echo "✅ HTTP redirect working"
           else
-            echo "⚠️ HTTP redirect may not be configured (expected if SSL skipped)"
+            echo "❌ HTTP redirect is not working"
+            exit 1
           fi
 
       - name: Test HTTPS Endpoint
@@ -155,12 +209,13 @@ jobs:
           fi
           
           echo "🧪 Testing HTTPS endpoint..."
-          RESPONSE=$(curl -sI "https://$DOMAIN/inventory-forecasting/health" 2>/dev/null | head -1)
+          RESPONSE=$(curl -sI "https://$DOMAIN/health" 2>/dev/null | head -1)
           echo "Response: $RESPONSE"
           if echo "$RESPONSE" | grep -q "200"; then
             echo "✅ HTTPS endpoint healthy!"
           else
-            echo "⚠️ HTTPS test failed - SSL may need manual setup"
+            echo "❌ HTTPS test failed"
+            exit 1
           fi
 
       - name: Show Access URLs
@@ -171,7 +226,7 @@ jobs:
           echo "========================================"
           echo "🎉 NGINX SETUP COMPLETE!"
           echo "========================================"
-          echo "📊 Dashboard: https://$DOMAIN/inventory-forecasting/static/index.html"
-          echo "🔌 API: https://$DOMAIN/inventory-forecasting/"
-          echo "❤️ Health: https://$DOMAIN/inventory-forecasting/health"
+          echo "📊 Dashboard: https://$DOMAIN/"
+          echo "🔌 API: https://$DOMAIN/"
+          echo "❤️ Health: https://$DOMAIN/health"
           echo "========================================"
