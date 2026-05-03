@@ -33,61 +33,68 @@ jobs:
           SKIP_SSL: ${{ github.event.inputs.skip_ssl }}
         run: |
           echo "🌐 Setting up Nginx for $DOMAIN..."
-          
+
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
-          
+
+          # Build nginx config on the runner and base64-encode it so it can be
+          # safely embedded as a single string in the SSM commands array.
+          NGINX_B64=$(base64 -w0 << 'NGINX_EOF'
+server {
+    listen 80;
+    server_name DOMAIN www.DOMAIN;
+
+    location /inventory-forecasting/ {
+        proxy_pass http://127.0.0.1:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /inventory-forecasting {
+        return 301 /inventory-forecasting/;
+    }
+
+    location / {
+        return 200 'Inventory Quantum API. Visit /inventory-forecasting/ for the dashboard.';
+        add_header Content-Type text/plain;
+    }
+}
+NGINX_EOF
+)
+          # Substitute actual domain (use | delimiter in case domain contains /)
+          NGINX_B64=$(echo "$NGINX_B64" | base64 -d | sed "s|DOMAIN|$DOMAIN|g" | base64 -w0)
+
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Setup Nginx and SSL" \
             --parameters "commands=[
               \"set -e\",
-              \"echo '=== Installing Nginx ===' \",
+              \"echo '=== Installing Nginx ==='\",
               \"sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx\",
-              
-              \"echo '=== Creating Nginx Config ===' \",
-              \"sudo tee /etc/nginx/sites-available/inventory-quantum << 'NGINX_EOF'
-server {
-    listen 80;
-    server_name ${DOMAIN} www.${DOMAIN};
-    
-    location /inventory-forecasting/ {
-        proxy_pass http://127.0.0.1:8000/;
-        proxy_http_version 1.1;
-        proxy_set_header Host \\$host;
-        proxy_set_header X-Real-IP \\$remote_addr;
-        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \\$scheme;
-    }
-    
-    location /inventory-forecasting {
-        return 301 /inventory-forecasting/;
-    }
-    
-    location / {
-        return 200 'Inventory Quantum API. Visit /inventory-forecasting/ for the dashboard.';
-        add_header Content-Type text/plain;
-    }
-}
-NGINX_EOF\",
-              
-              \"echo '=== Enabling Site ===' \",
+
+              \"echo '=== Creating Nginx Config ==='\",
+              \"echo '${NGINX_B64}' | base64 -d | sudo tee /etc/nginx/sites-available/inventory-quantum\",
+
+              \"echo '=== Enabling Site ==='\",
               \"sudo ln -sf /etc/nginx/sites-available/inventory-quantum /etc/nginx/sites-enabled/\",
               \"sudo rm -f /etc/nginx/sites-enabled/default\",
               \"sudo nginx -t\",
               \"sudo systemctl reload nginx\",
-              
-              \"echo '=== SSL Setup ===' \",
+
+              \"echo '=== SSL Setup ==='\",
               \"if [ '${SKIP_SSL}' != 'true' ]; then\",
               \"  sudo certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} --non-interactive --agree-tos -m admin@${DOMAIN} --redirect || echo 'SSL setup failed - check DNS'\",
               \"else\",
               \"  echo 'Skipping SSL (manual run later)'\",
               \"fi\",
-              
-              \"echo '=== Verifying ===' \",
+
+              \"echo '=== Verifying ==='\",
               \"sudo nginx -t\",
               \"sudo systemctl status nginx --no-pager\",
-              \"echo '✅ Nginx setup complete!'\"
+              \"echo 'Nginx setup complete!'\"
             ]" \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
