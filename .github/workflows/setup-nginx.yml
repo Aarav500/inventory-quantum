@@ -100,11 +100,11 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --comment "Setup Nginx and SSL" \
+            --comment "Setup Nginx HTTP" \
             --parameters "commands=[
               \"set -e\",
               \"echo '=== Installing Nginx ==='\",
-              \"sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx\",
+              \"sudo apt-get update && sudo apt-get install -y nginx curl\",
 
               \"echo '=== Creating Nginx Config ==='\",
               \"echo '${NGINX_B64}' | base64 -d | sudo tee /etc/nginx/sites-available/inventory-quantum\",
@@ -115,19 +115,12 @@ jobs:
               \"sudo nginx -t\",
               \"sudo systemctl reload nginx\",
 
-              \"echo '=== SSL Setup ==='\",
-              \"if [ '${SKIP_SSL}' != 'true' ]; then\",
-              \"  sudo certbot --nginx ${CERTBOT_DOMAINS} --non-interactive --agree-tos -m admin@${DOMAIN} --redirect\",
-              \"else\",
-              \"  echo 'Skipping SSL (manual run later)'\",
-              \"fi\",
-
               \"echo '=== Verifying ==='\",
               \"sudo nginx -t\",
               \"sudo systemctl status nginx --no-pager\",
-              \"ss -tlnp | grep -E ':(80|443) '\",
+              \"ss -tlnp | grep ':80 '\",
               \"curl -sfI http://localhost/health\",
-              \"echo 'Nginx setup complete!'\"
+              \"echo 'Nginx HTTP setup complete!'\"
             ]" \
             --timeout-seconds 300 \
             --query "Command.CommandId" \
@@ -169,7 +162,6 @@ jobs:
       - name: Test Direct Origin
         env:
           DOMAIN: ${{ github.event.inputs.domain }}
-          SKIP_SSL: ${{ github.event.inputs.skip_ssl }}
         run: |
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
           PUBLIC_IP=$(aws ec2 describe-instances \
@@ -180,9 +172,92 @@ jobs:
           echo "Origin public IP: $PUBLIC_IP"
           curl -sfI --resolve "$DOMAIN:80:$PUBLIC_IP" "http://$DOMAIN/health"
 
-          if [ "$SKIP_SSL" != "true" ]; then
-            curl -sfI --resolve "$DOMAIN:443:$PUBLIC_IP" "https://$DOMAIN/health"
+      - name: Setup SSL on EC2
+        if: ${{ github.event.inputs.skip_ssl != 'true' }}
+        env:
+          DOMAIN: ${{ github.event.inputs.domain }}
+          INCLUDE_WWW: ${{ github.event.inputs.include_www }}
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+
+          CERTBOT_DOMAINS="-d ${DOMAIN}"
+          if [ "$INCLUDE_WWW" = "true" ]; then
+            CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d www.${DOMAIN}"
           fi
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Setup Nginx SSL" \
+            --parameters "commands=[
+              \"set -e\",
+              \"echo '=== Installing Certbot ==='\",
+              \"sudo apt-get update && sudo apt-get install -y certbot python3-certbot-nginx\",
+              \"echo '=== SSL Setup ==='\",
+              \"sudo certbot --nginx ${CERTBOT_DOMAINS} --non-interactive --agree-tos -m admin@${DOMAIN} --redirect\",
+              \"echo '=== Verifying SSL ==='\",
+              \"sudo nginx -t\",
+              \"sudo systemctl status nginx --no-pager\",
+              \"ss -tlnp | grep -E ':(80|443) '\",
+              \"curl -sfI http://localhost/health\",
+              \"echo 'Nginx SSL setup complete!'\"
+            ]" \
+            --timeout-seconds 300 \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "📋 SSL Command ID: $COMMAND_ID"
+          echo "⏳ Waiting for SSL setup..."
+
+          for i in {1..20}; do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "Status" \
+              --output text 2>/dev/null || echo "Pending")
+
+            echo "Status: $STATUS"
+
+            if [ "$STATUS" = "Success" ]; then
+              echo "✅ SSL setup succeeded!"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardOutputContent" \
+                --output text
+              break
+            elif [ "$STATUS" = "Failed" ]; then
+              echo "❌ SSL setup failed!"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardOutputContent" \
+                --output text
+              echo "--- stderr ---"
+              aws ssm get-command-invocation \
+                --command-id "$COMMAND_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --query "StandardErrorContent" \
+                --output text
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+      - name: Test Direct HTTPS Origin
+        if: ${{ github.event.inputs.skip_ssl != 'true' }}
+        env:
+          DOMAIN: ${{ github.event.inputs.domain }}
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+
+          echo "Origin public IP: $PUBLIC_IP"
+          curl -sfI --resolve "$DOMAIN:443:$PUBLIC_IP" "https://$DOMAIN/health"
 
       - name: Test HTTP Redirect
         env:
